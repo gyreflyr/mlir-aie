@@ -91,7 +91,7 @@ def run_flow(opts, tmpdirname):
         file_core_llvmir = tmpcorefile(core, "ll")
         do_call(['aie-translate', '--mlir-to-llvmir', file_opt_core, '-o', file_core_llvmir])
         file_core_llvmir_stripped = tmpcorefile(core, "stripped.ll")
-        do_call(['opt', '-O2', '-strip', '-S', file_core_llvmir, '-o', file_core_llvmir_stripped])
+        do_call(['opt', '-passes=default<O2>,strip', '-mtriple=unknown', '-S', file_core_llvmir, '-o', file_core_llvmir_stripped])
         file_core_elf = elf_file if elf_file else corefile(".", core, "elf")
         file_core_obj = tmpcorefile(core, "o")
         if(opts.xchesscc):
@@ -100,7 +100,7 @@ def run_flow(opts, tmpdirname):
           do_call(['sed', '-i', 's/noundef//', file_core_llvmir_chesshack])
           do_call(['sed', '-i', 's/noalias_sidechannel[^,],//', file_core_llvmir_chesshack])
           file_core_llvmir_chesslinked = tmpcorefile(core, "chesslinked.ll")
-          do_call(['llvm-link', file_core_llvmir_chesshack, chess_intrinsic_wrapper, '-S', '-o', file_core_llvmir_chesslinked])
+          do_call(['/tools/B/tan.nqd/mlir-aie/llvm/build2/bin/llvm-link', file_core_llvmir_chesshack, chess_intrinsic_wrapper, '-S', '-o', file_core_llvmir_chesslinked])
           do_call(['sed', '-i', 's/noundef//', file_core_llvmir_chesslinked])
           # Formal function argument names not used in older LLVM
           do_call(['sed', '-i', '-E', '/define .*@/ s/%[0-9]*//g', file_core_llvmir_chesslinked])
@@ -137,8 +137,9 @@ def run_flow(opts, tmpdirname):
           do_call(['aie-translate', '--aie-generate-xaie', '--xaie-target=v1', file_physical, '-o', file_inc_cpp])
 
 
-      # Lastly, compile the generated host interface with any ARM code.
-      cmd = ['clang','--target=aarch64-linux-gnu', '-std=c++11']
+      # Lastly, compile the generated host interface
+      cmd = ['clang','-std=c++11']
+
       if(opts.sysroot):
         cmd += ['--sysroot=%s' % opts.sysroot]
         if(opts.xaie == 2):
@@ -150,6 +151,11 @@ def run_flow(opts, tmpdirname):
       cmd += ['-I%s/opt/xaiengine/include' % opts.sysroot]
       cmd += ['-L%s/opt/xaiengine/lib' % opts.sysroot]
       cmd += ['-I%s' % tmpdirname]
+      cmd += ['-I/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/XilinxProcessorIPLib/drivers/aiengine/include']
+      cmd += ['-L/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/XilinxProcessorIPLib/drivers/aiengine/src']
+      cmd += ['-L/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/ThirdParty/sw_services/libmetal/src/libmetal/install/usr/local/lib']
+      cmd += ['-L/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/ThirdParty/sw_services/openamp/src/open-amp/install/usr/local/lib']
+
       if(opts.xaie == 2):
         cmd += ['-fuse-ld=lld','-lm','-rdynamic','-lxaiengine','-ldl']
       else:
