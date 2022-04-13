@@ -151,10 +151,15 @@ def run_flow(opts, tmpdirname):
       cmd += ['-I%s/opt/xaiengine/include' % opts.sysroot]
       cmd += ['-L%s/opt/xaiengine/lib' % opts.sysroot]
       cmd += ['-I%s' % tmpdirname]
-      cmd += ['-I/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/XilinxProcessorIPLib/drivers/aiengine/include']
-      cmd += ['-L/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/XilinxProcessorIPLib/drivers/aiengine/src']
-      cmd += ['-L/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/ThirdParty/sw_services/libmetal/src/libmetal/install/usr/local/lib']
-      cmd += ['-L/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/ThirdParty/sw_services/openamp/src/open-amp/install/usr/local/lib']
+      if(opts.xaie == 2):
+          cmd += ['-DLIBXAIENGINEV2']
+          cmd += ['-I/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/XilinxProcessorIPLib/drivers/aienginev2/include']
+          cmd += ['-L/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/XilinxProcessorIPLib/drivers/aienginev2/src']
+      else:
+          cmd += ['-I/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/XilinxProcessorIPLib/drivers/aiengine/include']
+          cmd += ['-L/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/XilinxProcessorIPLib/drivers/aiengine/src']
+          cmd += ['-L/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/ThirdParty/sw_services/libmetal/src/libmetal/install/usr/local/lib']
+          cmd += ['-L/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/ThirdParty/sw_services/openamp/src/open-amp/install/usr/local/lib']
 
       if(opts.xaie == 2):
         cmd += ['-fuse-ld=lld','-lm','-rdynamic','-lxaiengine','-ldl']

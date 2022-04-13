@@ -68,7 +68,7 @@ def parse_args():
             help='Generate libxaie v1 drivers (default is v1)')
     parser.add_argument('--aie-generate-xaiev2',
             dest="xaie",
-            default=1,
+            default=2,
             action='store_const', const=2,
             help='Generate libxaie v2 drivers (default is v1)')
     parser.add_argument("arm_args",
