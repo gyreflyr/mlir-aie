@@ -357,9 +357,10 @@ struct AIERoutePacketFlowsPass
     // destination ports at the same time For destination ports that appear in
     // different (multicast) flows, it should have a different <arbiterID, msel>
     // value pair for each flow
-    for (auto packetFlow : packetFlows) {
+    for (auto sourceFlow : slavePorts) {
+      auto packetFlow = packetFlows[sourceFlow];
       // The Source Tile of the flow
-      Operation *tileOp = packetFlow.first.first.first;
+      Operation *tileOp = sourceFlow.first.first;
       if (amselValues.count(tileOp) == 0)
         amselValues[tileOp] = 0;
 
@@ -387,11 +388,11 @@ struct AIERoutePacketFlowsPass
         // SmallVector<Port, 4> ports(map.second);
         SmallVector<Port, 4> ports(
             masterAMSels[std::make_pair(tileOp, amselValue)]);
-        if (ports.size() != packetFlow.second.size())
+        if (ports.size() != packetFlow.size())
           continue;
 
         bool matched = true;
-        for (auto dest : packetFlow.second) {
+        for (auto dest : packetFlow) {
           Port port = dest.second;
           if (std::find(ports.begin(), ports.end(), port) == ports.end()) {
             matched = false;
@@ -420,13 +421,13 @@ struct AIERoutePacketFlowsPass
             break;
         }
 
-        for (auto dest : packetFlow.second) {
+        for (auto dest : packetFlow) {
           Port port = dest.second;
           masterAMSels[std::make_pair(tileOp, amselValue)].push_back(port);
         }
       }
 
-      slaveAMSels[packetFlow.first] = amselValue;
+      slaveAMSels[sourceFlow] = amselValue;
       amselValues[tileOp] = amselValue % numArbiters;
     }
 

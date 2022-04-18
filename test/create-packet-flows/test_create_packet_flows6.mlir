@@ -8,7 +8,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-// REQUIRES: stephenn
 // RUN: aie-opt --aie-create-packet-flows %s | FileCheck %s
 
 // Fixme: may fail non-deterministically
@@ -20,7 +19,7 @@ module @test_create_packet_flows6 {
 // CHECK:           %{{.*}} = AIE.amsel<0> (0)
 // CHECK:           %[[VAL_3:.*]] = AIE.masterset(East : 0, %[[VAL_2:.*]])
 // CHECK:           AIE.packetrules(DMA : 0) {
-// CHECK:             AIE.rule(28, 3, %[[VAL_2]])
+// CHECK:             AIE.rule(28, 0, %[[VAL_2]])
 // CHECK:           }
 // CHECK:         }
 
@@ -31,7 +30,7 @@ module @test_create_packet_flows6 {
 // CHECK:           %[[VAL_8:.*]] = AIE.masterset(DMA : 0, %[[VAL_7:.*]])
 // CHECK:           %[[VAL_9:.*]] = AIE.masterset(East : 0, %[[VAL_6:.*]])
 // CHECK:           AIE.packetrules(West : 0) {
-// CHECK:             AIE.rule(28, 3, %[[VAL_6]])
+// CHECK:             AIE.rule(28, 0, %[[VAL_6]])
 // CHECK:             AIE.rule(31, 0, %[[VAL_7]])
 // CHECK:           }
 // CHECK:         }
@@ -43,17 +42,17 @@ module @test_create_packet_flows6 {
 // CHECK:           %[[VAL_14:.*]] = AIE.masterset(DMA : 0, %[[VAL_13:.*]])
 // CHECK:           %[[VAL_15:.*]] = AIE.masterset(East : 0, %[[VAL_12:.*]])
 // CHECK:           AIE.packetrules(West : 0) {
-// CHECK:             AIE.rule(30, 3, %[[VAL_12]])
+// CHECK:             AIE.rule(30, 2, %[[VAL_12]])
 // CHECK:             AIE.rule(31, 1, %[[VAL_13]])
 // CHECK:           }
 // CHECK:         }
 
 // CHECK:         %[[VAL_16:.*]] = AIE.tile(5, 2)
 // CHECK:         %[[VAL_17:.*]] = AIE.switchbox(%[[VAL_16]]) {
-// CHECK:           %[[VAL_18:.*]] = AIE.amsel<0> (0)
-// CHECK:           %[[VAL_19:.*]] = AIE.amsel<0> (1)
-// CHECK:           %[[VAL_20:.*]] = AIE.masterset(DMA : 0, %[[VAL_19]])
-// CHECK:           %[[VAL_21:.*]] = AIE.masterset(East : 0, %[[VAL_18]])
+// CHECK:           %{{.*}} = AIE.amsel<0> (0)
+// CHECK:           %{{.*}} = AIE.amsel<0> (1)
+// CHECK:           %[[VAL_20:.*]] = AIE.masterset(DMA : 0, %[[VAL_19:.*]])
+// CHECK:           %[[VAL_21:.*]] = AIE.masterset(East : 0, %[[VAL_18:.*]])
 // CHECK:           AIE.packetrules(West : 0) {
 // CHECK:             AIE.rule(31, 3, %[[VAL_18]])
 // CHECK:             AIE.rule(31, 2, %[[VAL_19]])
