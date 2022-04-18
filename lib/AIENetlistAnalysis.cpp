@@ -263,10 +263,8 @@ xilinx::AIE::NetlistAnalysis::getBufferBaseAddress(Operation *bufOp) const {
   }
 }
 
-SmallVector<Operation *, 4> xilinx::AIE::NetlistAnalysis::getNextConnectOps(
-    ConnectOp currentConnect) const {
-
-  SmallVector<Operation *, 4> nextConnectOps;
+void xilinx::AIE::NetlistAnalysis::getNextConnectOps(
+    ConnectOp currentConnect, SmallVector<Operation *> &nextConnectOps) const {
 
   Operation *swboxOp = currentConnect->getParentOp();
   SwitchboxOp swbox = dyn_cast<SwitchboxOp>(swboxOp);
@@ -294,7 +292,7 @@ SmallVector<Operation *, 4> xilinx::AIE::NetlistAnalysis::getNextConnectOps(
     nextRow = row;
     nextSrcBundle = WireBundle::West;
   } else {
-    return nextConnectOps;
+    return;
   }
 
   assert((nextCol >= 0 && nextRow >= 0) &&
@@ -310,8 +308,6 @@ SmallVector<Operation *, 4> xilinx::AIE::NetlistAnalysis::getNextConnectOps(
       nextConnectOps.push_back(connect);
     }
   }
-
-  return nextConnectOps;
 }
 
 SmallVector<Operation *, 4>
@@ -321,7 +317,9 @@ xilinx::AIE::NetlistAnalysis::findRoutes(Operation *sourceConnectOp,
   SmallVector<Operation *, 4> routes;
   routes.push_back(sourceConnectOp);
   ConnectOp sourceConnect = dyn_cast<ConnectOp>(sourceConnectOp);
-  ArrayRef<Operation *> nextConnectOps(getNextConnectOps(sourceConnect));
+  SmallVector<Operation *> nextConnectOps;
+  getNextConnectOps(sourceConnect, nextConnectOps);
+
   for (auto nextConnectOp : nextConnectOps) {
     if (destConnectOp == nextConnectOp) {
       return routes;
@@ -339,17 +337,18 @@ xilinx::AIE::NetlistAnalysis::findRoutes(Operation *sourceConnectOp,
   return routes;
 }
 
-SmallVector<Operation *, 4>
-xilinx::AIE::NetlistAnalysis::findDestConnectOps(ConnectOp source,
-                                                 WireBundle destBundle) const {
+void xilinx::AIE::NetlistAnalysis::findDestConnectOps(ConnectOp source, WireBundle destBundle,
+                        SmallVector<Operation *> &dests
+                        ) const {
 
-  SmallVector<Operation *, 4> dests;
   SmallVector<Operation *, 4> workList;
   workList.push_back(source);
 
   while (!workList.empty()) {
     ConnectOp visitor = dyn_cast<ConnectOp>(workList.pop_back_val());
-    ArrayRef<Operation *> nextConnectOps(getNextConnectOps(visitor));
+    SmallVector<Operation *> nextConnectOps;
+    getNextConnectOps(visitor, nextConnectOps);
+
     for (auto nextConnectOp : nextConnectOps) {
       ConnectOp nextConnect = dyn_cast<ConnectOp>(nextConnectOp);
       if (nextConnect.destBundle() != destBundle)
@@ -358,8 +357,6 @@ xilinx::AIE::NetlistAnalysis::findDestConnectOps(ConnectOp source,
         dests.push_back(nextConnect);
     }
   }
-
-  return dests;
 }
 
 void xilinx::AIE::NetlistAnalysis::dmaAnalysis() {
@@ -386,8 +383,8 @@ void xilinx::AIE::NetlistAnalysis::dmaAnalysis() {
 
       dma2ConnectsMap[srcDmaOp].push_back(connect);
 
-      ArrayRef<Operation *> destConnectOps(
-          findDestConnectOps(connect, WireBundle::DMA));
+      SmallVector<Operation *> destConnectOps;
+      findDestConnectOps(connect, WireBundle::DMA, destConnectOps);
       for (auto destConnectOp : destConnectOps) {
         ConnectOp destConnect = dyn_cast<ConnectOp>(destConnectOp);
         SwitchboxOp destSwbox =

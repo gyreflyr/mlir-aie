@@ -92,9 +92,8 @@ public:
   uint64_t getMemUsageInBytes(Operation *tileOp) const;
   uint64_t getBufferBaseAddress(Operation *bufOp) const;
 
-  SmallVector<Operation *, 4> getNextConnectOps(ConnectOp currentConnect) const;
-  SmallVector<Operation *, 4> findDestConnectOps(ConnectOp source,
-                                                 WireBundle destBundle) const;
+  void getNextConnectOps(ConnectOp currentConnect, SmallVector<Operation *> &nextConnectOps) const;
+  void findDestConnectOps(ConnectOp source, WireBundle destBundle, SmallVector<Operation *> &destConnectOps) const;
   SmallVector<Operation *, 4> findRoutes(Operation *sourceConnectOp,
                                          Operation *destConnectOp) const;
   void dmaAnalysis();
