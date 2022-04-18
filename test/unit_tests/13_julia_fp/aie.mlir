@@ -10,7 +10,7 @@
 
 // REQUIRES: peano
 // RUN: clang++ -O2 --target=aie -c -I/usr/include/aie %S/kernel.cpp
-// RUN: aiecc.py --sysroot=%VITIS_SYSROOT% --aie-generate-xaiev2 %s -I%aie_runtime_lib%/ %aie_runtime_lib%/test_library.cpp %S/test.cpp -o test.elf
+// RUN: aiecc.py --sysroot=%VITIS_SYSROOT% --aie-generate-xaiev2 %s -I%aie_runtime_lib%/ %aie_runtime_lib%/test_library.cpp %aie_runtime_lib%/common.cpp %S/test.cpp -o test.elf
 // RUN: %run_on_board ./test.elf
 
 module @test {

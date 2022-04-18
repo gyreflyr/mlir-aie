@@ -8,6 +8,8 @@
 set(INSTALLS
     test_library.cpp
     test_library.h
+    common.cpp
+    common.h
     chess_intrinsic_wrapper.cpp)
 
 

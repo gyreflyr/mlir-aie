@@ -16,6 +16,8 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
+#include "common.cpp"
+
 extern "C" {
 extern aie_libxaie_ctx_t *ctx /* = nullptr*/;
 }

@@ -100,7 +100,7 @@ def run_flow(opts, tmpdirname):
           do_call(['sed', '-i', 's/noundef//', file_core_llvmir_chesshack])
           do_call(['sed', '-i', 's/noalias_sidechannel[^,],//', file_core_llvmir_chesshack])
           file_core_llvmir_chesslinked = tmpcorefile(core, "chesslinked.ll")
-          do_call(['/tools/B/tan.nqd/mlir-aie/llvm/build2/bin/llvm-link', file_core_llvmir_chesshack, chess_intrinsic_wrapper, '-S', '-o', file_core_llvmir_chesslinked])
+          do_call(['llvm-link', file_core_llvmir_chesshack, chess_intrinsic_wrapper, '-S', '-o', file_core_llvmir_chesslinked])
           do_call(['sed', '-i', 's/noundef//', file_core_llvmir_chesslinked])
           # Formal function argument names not used in older LLVM
           do_call(['sed', '-i', '-E', '/define .*@/ s/%[0-9]*//g', file_core_llvmir_chesslinked])
@@ -138,7 +138,7 @@ def run_flow(opts, tmpdirname):
 
 
       # Lastly, compile the generated host interface
-      cmd = ['clang','-std=c++11']
+      cmd = ['clang','-std=c++14']
 
       if(opts.sysroot):
         cmd += ['--sysroot=%s' % opts.sysroot]
@@ -153,16 +153,18 @@ def run_flow(opts, tmpdirname):
       cmd += ['-I%s' % tmpdirname]
       if(opts.xaie == 2):
           cmd += ['-DLIBXAIENGINEV2']
-          cmd += ['-I/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/XilinxProcessorIPLib/drivers/aienginev2/include']
-          cmd += ['-L/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/XilinxProcessorIPLib/drivers/aienginev2/src']
+          cmd += ['-I%s/include' % os.environ['LIBXAIENGINEV2_PATH']]
+          cmd += ['-I%s/include' % os.environ['XRT_PATH']]
+          cmd += ['-L%s/src' % os.environ['LIBXAIENGINEV2_PATH']]
+          cmd += ['-L%s/lib' % os.environ['XRT_PATH']]
       else:
-          cmd += ['-I/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/XilinxProcessorIPLib/drivers/aiengine/include']
-          cmd += ['-L/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/XilinxProcessorIPLib/drivers/aiengine/src']
-          cmd += ['-L/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/ThirdParty/sw_services/libmetal/src/libmetal/install/usr/local/lib']
-          cmd += ['-L/tools/B/tan.nqd/tan-mlir-aie/embeddedsw/ThirdParty/sw_services/openamp/src/open-amp/install/usr/local/lib']
+          cmd += ['-I%s/include' % os.environ['LIBXAIENGINEV1_PATH']]
+          cmd += ['-L%s/src' % os.environ['LIBXAIENGINEV1_PATH']]
+          cmd += ['-L%s' % os.environ['LIBMETAL_PATH']]
+          cmd += ['-L%s' % os.environ['LIBAMP_PATH']]
 
       if(opts.xaie == 2):
-        cmd += ['-fuse-ld=lld','-lm','-rdynamic','-lxaiengine','-ldl']
+        cmd += ['-fuse-ld=lld','-lm','-rdynamic','-lxaiengine','-ldl', '-lrt', '-lpthread', '-lstdc++', '-lxrt_coreutil']
       else:
         cmd += ['-fuse-ld=lld','-lm','-rdynamic','-lxaiengine','-lmetal','-lopen_amp','-ldl']
     

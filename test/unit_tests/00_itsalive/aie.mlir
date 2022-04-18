@@ -7,7 +7,7 @@
 // (c) Copyright 2021 Xilinx Inc.
 //
 //===----------------------------------------------------------------------===//
-
+// RUN: source %S/../../../settings.sh
 // RUN: aiecc.py %s
 
 module @test00_itsalive {
