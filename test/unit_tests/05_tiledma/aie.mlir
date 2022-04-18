@@ -69,7 +69,7 @@ module @test05_tiledma {
       AIE.useLock(%lock13_5, "Acquire", 1)
       AIE.dmaBd(<%buf13_1 : memref<256xi32>, 0, 256>, 0)
       AIE.useLock(%lock13_5, "Release", 0)
-      br ^end // point to the next BD, or termination
+      cf.br ^end // point to the next BD, or termination
     ^end:
       AIE.end
   }
@@ -80,7 +80,7 @@ module @test05_tiledma {
       AIE.useLock(%lock33_6, "Acquire", 0)
       AIE.dmaBd(<%buf33_0: memref<256xi32>, 0, 256>, 0)
       AIE.useLock(%lock33_6, "Release", 1)
-      br ^end // point to the next BD, or termination
+      cf.br ^end // point to the next BD, or termination
     ^end:
       AIE.end
   }
