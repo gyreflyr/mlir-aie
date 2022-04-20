@@ -822,6 +822,40 @@ def AIE_DMABDOp: AIE_Op<"dmaBd", []> {
     int getLenValue() { return len(); }
     bool isA() { return (AB() == 0); }
     bool isB() { return (AB() == 1); }
+
+    IntegerAttr pkt_type() {
+      if (auto attr = getOperation()->getAttrOfType<IntegerAttr>("pkt_type")) {
+        return attr;
+      }
+
+      return nullptr;
+    }
+
+    IntegerAttr pkt_id() {
+      if (auto attr = getOperation()->getAttrOfType<IntegerAttr>("pkt_id")) {
+        return attr;
+      }
+
+      return nullptr;
+    }
+
+    int getPktTypeValue() {
+      IntegerAttr attr = pkt_type();
+      int value = attr.getValue().getZExtValue();
+      if (value >= 8)
+        assert(false && "BD Packet type value exceeds 3 bits");
+
+      return value;
+    }
+
+    int getPktIdValue() {
+      IntegerAttr attr = pkt_id();
+      int value = attr.getValue().getZExtValue();
+      if (value >= 32)
+        assert(false && "BD Packet id value exceeds 5 bits");
+
+      return value;
+    }
   }];
 
   // let builders = [
@@ -888,6 +922,76 @@ def AIE_DMAStartOp: AIE_Op<"dmaStart", [ParentOneOf<["MemOp", "FuncOp", "ShimDMA
               build($_builder, $_state, $_builder.getIntegerType(1), channel, dest, chain);
               }]>
   ];
+}
+
+def AIE_DMALaunchOp: AIE_Op<"dmaLaunch", [ParentOneOf<["MemOp", "FuncOp", "ShimDMAOp"]>, Terminator]> {
+
+  let summary = "An op to launch DMA channels";
+  let description = [{
+    This op declares the ownership of each DMA channel to a starting BD.
+    Each successor operand points to an MLIR basic block represent a starting BD
+    (contains DMABD op & Lock/Token ops).
+    If a DMA channel is not used ("start"), its successor should contain
+    AIE.end op only.
+
+    The DMA Channel order of the operands is [S2MM0, S2MM1, MM2S0, MM2S1].
+
+    This op achieves the same thing as dmaStart op, except that we would like
+    to capture the status all the dma channels from the beginning (instead of
+    chaining one DMA channel to another -- which does not mean much in term of
+    hardware execution since the DMA channels are independent and they rely on
+    the locking mechanism to control their execution order).
+
+    Example:
+      AIE.mem(%tile) {
+        AIE.dmaLaunch(^s2mm0, ^end, ^end, ^mm2s1) // S2MM1 and MM2S0 are not used
+        ^s2mm0:
+          AIE.useLock(%lock0, Acquire, 1)
+          AIE.dmaBd(<%buf0 : memref<256xi32>, 0, 256>, 0)
+          AIE.useLock(%lock0, Release, 0)
+          cf.br ^s2mm0 // point to itself to enable next BD (running forever)
+        ^mm2s1:
+          AIE.useLock(%lock1, Acquire, 0)
+          AIE.dmaBd(<%buf1 : memref<256xi32>, 0, 256>, 0)
+          AIE.useLock(%lock1, Release, 1)
+          cf.br ^end // point to ^end to disable next BD (running once)
+        ^end:
+          AIE.end
+      }
+  }];
+  // TODO: verify this with a FlowOp to make sure corresponding DMA channels
+  // are also enable in FlowOp's operands
+
+  // TODO: it might be more concise to use Variadic instead. The problem is
+  // how to associate each with a DMAChan enum attribute
+  let successors = (successor AnySuccessor:$s2mm0_bd, AnySuccessor:$s2mm1_bd,
+                              AnySuccessor:$mm2s0_bd, AnySuccessor:$mm2s1_bd);
+  let assemblyFormat = [{
+    `(` $s2mm0_bd `,` $s2mm1_bd `,` $mm2s0_bd `,` $mm2s1_bd `)` attr-dict
+  }];
+  let verifier = [{ return ::verify(*this); }];
+  let extraClassDeclaration = [{
+    SmallVector<Block *> getDMAChannels() {
+      SmallVector<Block *, 4> dmaChannels;
+      dmaChannels.push_back(s2mm0_bd());
+      dmaChannels.push_back(s2mm1_bd());
+      dmaChannels.push_back(mm2s0_bd());
+      dmaChannels.push_back(mm2s1_bd());
+      return dmaChannels;
+    }
+
+    StringRef getDMAChannelName(int idx) {
+      if (idx == 0)
+        return "S2MM0";
+      if (idx == 1)
+        return "S2MM1";
+      if (idx == 2)
+        return "MM2S0";
+      if (idx == 3)
+        return "MM2S1";
+      llvm_unreachable("DMA Channel index out-of-bound!");
+    }
+  }];
 }
 
 // MemOps are not actually Callable, but we want to inline code into them, so we have to 

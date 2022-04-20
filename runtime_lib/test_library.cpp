@@ -546,6 +546,28 @@ void mlir_aie_clear_shim_config(aie_libxaie_ctx_t *ctx, int col, int row) {
   clear_range(&(ctx->DevInst), tileAddr, 0x3F200, 0x3F37C);
 }
 
+void mlir_aie_clear_locks(aie_libxaie_ctx_t *ctx, int col, int row) {
+  u64 tileAddr = _XAie_GetTileAddr(&(ctx->DevInst), row, col);
+  // Keep trying until all locks are released
+  int num_trials = 4;
+  u32 locks_offset = 0x01EF00;
+  // Shim NOC tile has different lock address
+  if (row == 0)
+    locks_offset = 0x014F00;
+  u32 locks = 0;
+  for (int i = 0; i < num_trials; i++) {
+    XAie_Read32(&(ctx->DevInst), tileAddr + locks_offset, &locks);
+    // OK
+    if (locks == 0)
+      return;
+
+    for (int i = 0; i < 16; i++)
+      mlir_aie_release_lock(ctx, col, row, i, 0, 0);
+  }
+
+  printf("Errors! Could not clear all locks of Tile(%d, %d)!", col, row);
+}
+
 void mlir_aie_init_mems(aie_libxaie_ctx_t *ctx, int numBufs) {
   ctx->buffers = (XAie_MemInst **)malloc(numBufs * sizeof(XAie_MemInst *));
 }

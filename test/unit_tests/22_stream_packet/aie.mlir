@@ -39,19 +39,19 @@ module @test22_stream_packet {
   %l71_1 = AIE.lock(%t71, 1)
 
   %m71 = AIE.mem(%t71) {
-      %srcDma = AIE.dmaStart("MM2S0", ^bd0, ^end)
+    %srcDma = AIE.dmaStart("MM2S0", ^bd0, ^end)
     ^bd0:
       AIE.useLock(%l71_0, "Acquire", 1)
-      AIE.dmaBdPacket(0x4, 0x0) // (pkt_type, pkt_id)
-      AIE.dmaBd(<%buf71_0 : memref<256xi32>, 0, 256>, 0)
+      //AIE.dmaBdPacket(0x4, 0x0) // (pkt_type, pkt_id)
+      AIE.dmaBd(<%buf71_0 : memref<256xi32>, 0, 256>, 0) { pkt_id = 0x0, pkt_type = 0x4 }
       AIE.useLock(%l71_0, "Release", 0)
-      br ^bd1
+      cf.br ^bd1
     ^bd1:
       AIE.useLock(%l71_1, "Acquire", 1)
-      AIE.dmaBdPacket(0x5, 0x1) // (pkt_type, pkt_id)
-      AIE.dmaBd(<%buf71_1 : memref<256xi32>, 0, 256>, 0)
+      //AIE.dmaBdPacket(0x5, 0x1) // (pkt_type, pkt_id)
+      AIE.dmaBd(<%buf71_1 : memref<256xi32>, 0, 256>, 0) { pkt_id = 0x1, pkt_type = 0x5 }
       AIE.useLock(%l71_1, "Release", 0)
-      br ^end
+      cf.br ^end
     ^end:
       AIE.end
   }
@@ -60,12 +60,12 @@ module @test22_stream_packet {
   %l62 = AIE.lock(%t62, 0)
 
   %m62 = AIE.mem(%t62) {
-      %srcDma0 = AIE.dmaStart("S2MM0", ^bd0, ^end)
+    %srcDma0 = AIE.dmaStart("S2MM0", ^bd0, ^end)
     ^bd0:
       AIE.useLock(%l62, "Acquire", 0)
       AIE.dmaBd(<%buf62 : memref<512xi32>, 0, 512>, 0)
       AIE.useLock(%l62, "Release", 1)
-      br ^end
+      cf.br ^end
     ^end:
       AIE.end
   }  

@@ -440,6 +440,22 @@ xilinx::AIE::TileOp xilinx::AIE::BufferOp::getTileOp() {
   return cast<xilinx::AIE::TileOp>(tile().getDefiningOp());
 }
 
+// DMALaunchOp
+static LogicalResult verify(xilinx::AIE::DMALaunchOp op) {
+  // DMA channels should not point to the same BD (a BD cannot be shared)
+  // unless it is a terminating block (contains AIE.end)
+  for (size_t i = 0; i < op.getDMAChannels().size(); i++) {
+    for (size_t j = i + 1; j < op.getDMAChannels().size(); j++) {
+      if (op.getDMAChannels()[i] != op.getDMAChannels()[j])
+        continue;
+      if (!op.getDMAChannels()[i]->getOps<xilinx::AIE::DMABDOp>().empty())
+        op.emitOpError() << "Block Descriptor should be exclusive to one DMA channel!\n";
+    }
+  }
+
+  return success();
+}
+
 // MemOp
 static LogicalResult verify(xilinx::AIE::MemOp op) {
   Region &body = op.body();
@@ -463,6 +479,17 @@ static LogicalResult verify(xilinx::AIE::MemOp op) {
       if (!allocOp->getAttr("id"))
         op.emitOpError()
             << "allocOp in MemOp region should have an id attribute\n";
+    }
+  }
+
+  for (auto &block : op.body()) {
+    if (!block.getOps<xilinx::AIE::DMABDOp>().empty()) {
+      if (!block.getOps<xilinx::AIE::EndOp>().empty())
+        op.emitOpError() << "BD Block should not contain AIE EndOp\n";
+
+      if (block.hasNoPredecessors() ||
+          (block.getNumSuccessors() == 1 && block.getSuccessors()[0] == &block))
+        op.emitOpError() << "Found dangling BD Block (not owned by any DMA channel)\n";
     }
   }
 

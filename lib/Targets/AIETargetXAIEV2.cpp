@@ -133,6 +133,8 @@ mlir::LogicalResult AIETranslateToXAIEV2(ModuleOp module, raw_ostream &output) {
           fileName = std::string("core_") + std::to_string(col) + "_" +
                      std::to_string(row) + ".elf";
         }
+        output << "XAie_CoreDisable(" << deviceInstRef << ", "
+               << tileLocStr(col, row) << ");\n";
         output << "{\n"
                << "AieRC RC = XAie_LoadElf(" << deviceInstRef << ", "
                << tileLocStr(col, row) << ", "
@@ -158,6 +160,8 @@ mlir::LogicalResult AIETranslateToXAIEV2(ModuleOp module, raw_ostream &output) {
     int col = tileOp.colIndex();
     int row = tileOp.rowIndex();
     if (!tileOp.isShimTile()) {
+      output << "XAie_CoreReset(" << deviceInstRef << ", "
+             << tileLocStr(col, row) << ");\n";
       output << "XAie_CoreUnreset(" << deviceInstRef << ", "
              << tileLocStr(col, row) << ");\n";
       output << "XAie_CoreEnable(" << deviceInstRef << ", "
@@ -259,6 +263,12 @@ mlir::LogicalResult AIETranslateToXAIEV2(ModuleOp module, raw_ostream &output) {
           bufB = "XAIEDMA_TILE_BD_ADDRB";
           hasB = true;
         }
+
+        if (op.pkt_id() && op.pkt_type()) {
+          foundBdPacket = true;
+          packetType = op.getPktTypeValue();
+          packetID = op.getPktIdValue();
+        }
       }
 
       if (hasA && hasB) {
@@ -314,12 +324,15 @@ mlir::LogicalResult AIETranslateToXAIEV2(ModuleOp module, raw_ostream &output) {
         if (block.getNumSuccessors() > 0) {
           Block *nextBlock = block.getSuccessors()[0]; // should have only one
                                                        // successor block
+          bool IsFinalBlock = false;
+          if (!nextBlock->getOps<EndOp>().empty())
+            IsFinalBlock = true;
           int nextBdNum = blockMap[nextBlock];
           output << "XAie_DmaSetNextBd(" << tileDMAInstRefStr(col, row, bdNum)
                  << ", "
                  << " /* nextbd */ " << nextBdNum << ", "
-                 << " /* enableNextBd */ 1);\n"; // TODO Check if br ^end: to
-                                                 // disable this?
+                 << " /* enableNextBd */ " <<
+                 (IsFinalBlock ? "XAIE_DISABLE" : "XAIE_ENABLE") << ");\n";
         }
         if (foundBdPacket) {
           output << "XAie_DmaSetPkt(" << tileDMAInstRefStr(col, row, bdNum)
@@ -355,6 +368,34 @@ mlir::LogicalResult AIETranslateToXAIEV2(ModuleOp module, raw_ostream &output) {
                << ", "
                // TODO hack until physical dialect changes
                << "/* dmaDir */ DMA_" << dmaDir << ");\n";
+      }
+    }
+
+    for (auto &block : memOp.body()) {
+      for (auto op : block.getOps<DMALaunchOp>()) {
+        int idx = 0;
+        for (size_t i = 0; i < op.getDMAChannels().size(); i++) {
+          Block *dest = op.getDMAChannels()[i];
+          if (!dest->getOps<EndOp>().empty())
+            continue;
+          int bdNum = blockMap[dest];
+          llvm::StringRef dmaChan = op.getDMAChannelName(i);
+          llvm::StringRef dmaDir = dmaChan.substr(0, 4);
+          llvm::StringRef chNum = dmaChan.substr(4, 1);
+          output << "XAie_DmaChannelPushBdToQueue(" << deviceInstRef << ", "
+                 << tileLocStr(col, row) << ", "
+                 << "/* ChNum */" << chNum
+                 << ", "
+                 // TODO hack until physical dialect changes
+                 << "/* dmaDir */ DMA_" << dmaDir << ", "
+                 << "/* BdNum */" << bdNum << ");\n";
+          output << "XAie_DmaChannelEnable(" << deviceInstRef << ", "
+                 << tileLocStr(col, row) << ", "
+                 << "/* ChNum */ " << chNum
+                 << ", "
+                 // TODO hack until physical dialect changes
+                 << "/* dmaDir */ DMA_" << dmaDir << ");\n";
+        }
       }
     }
   }
@@ -521,6 +562,15 @@ mlir::LogicalResult AIETranslateToXAIEV2(ModuleOp module, raw_ostream &output) {
   // mlir_aie_initialize_locks
   //---------------------------------------------------------------------------
   output << "void mlir_aie_initialize_locks(" << ctx_p << ") {\n";
+  // First, ensure that all the locks being used are released to 0
+  // Better safe than sorry: check all tiles
+  for (auto op : module.getOps<TileOp>()) {
+    int col = op.colIndex();
+    int row = op.rowIndex();
+    output << "mlir_aie_clear_locks(" << "ctx" << ", "
+                                      << col << ", " << row << ");\n";
+  }
+
   // Lock configuration
   for (auto op : module.getOps<UseLockOp>()) {
     int lockVal = op.getLockValue();
