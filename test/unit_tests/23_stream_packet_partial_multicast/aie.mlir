@@ -52,12 +52,12 @@ module @test23_stream_packet_partial_multicast {
     AIE.dmaLaunch(^end, ^end, ^bd0, ^end)
     ^bd0: // MM2S0
       AIE.useLock(%l71_0, "Acquire", 1)
-      AIE.dmaBd(<%buf71_0 : memref<256xi32>, 0, 256>, 0) { pkt_id = 0x0, pkt_type = 0x0 }
+      AIE.dmaBd(<%buf71_0 : memref<256xi32>, 0, 256>, 0) { pkt_id = 0x1, pkt_type = 0x0 }
       AIE.useLock(%l71_0, "Release", 0)
       cf.br ^bd1
     ^bd1:
       AIE.useLock(%l71_1, "Acquire", 1)
-      AIE.dmaBd(<%buf71_1 : memref<256xi32>, 0, 256>, 0) { pkt_id = 0x1, pkt_type = 0x1 }
+      AIE.dmaBd(<%buf71_1 : memref<256xi32>, 0, 256>, 0) { pkt_id = 0x0, pkt_type = 0x1 }
       AIE.useLock(%l71_1, "Release", 0)
       cf.br ^end
     ^end:

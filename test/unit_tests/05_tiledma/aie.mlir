@@ -64,7 +64,6 @@ module @test05_tiledma {
   }
 
   %mem13 = AIE.mem(%tile13) {
-    //%dma0 = AIE.dmaStart("MM2S0", ^bd0, ^end)
     AIE.dmaLaunch(^end, ^end, ^bd0, ^end)
     ^bd0:
       AIE.useLock(%lock13_5, "Acquire", 1)
@@ -76,7 +75,6 @@ module @test05_tiledma {
   }
 
   %mem33 = AIE.mem(%tile33) {
-    //%dma0 = AIE.dmaStart("S2MM1", ^bd0, ^end)
     AIE.dmaLaunch(^end, ^bd0, ^end, ^end)
     ^bd0:
       AIE.useLock(%lock33_6, "Acquire", 0)

@@ -58,7 +58,7 @@ module @test08_stream_broadcast {
   }
 
   %mem13 = AIE.mem(%tile13) {
-    %dma0 = AIE.dmaStart("MM2S0", ^bd0, ^end)
+    AIE.dmaLaunch(^end, ^end, ^bd0, ^end)
     ^bd0:
       AIE.useLock(%lock13_5, "Acquire", 1)
       AIE.dmaBd(<%buf13_1 : memref<256xi32>, 0, 256>, 0)
@@ -95,7 +95,7 @@ module @test08_stream_broadcast {
   }
 
   %mem32 = AIE.mem(%tile32) {
-    %dma0 = AIE.dmaStart("S2MM1", ^bd0, ^end)
+    AIE.dmaLaunch(^end, ^bd0, ^end, ^end)
     ^bd0:
       AIE.useLock(%lock32_6, "Acquire", 0)
       AIE.dmaBd(<%buf32_0 : memref<256xi32>, 0, 256>, 0)
@@ -130,7 +130,7 @@ module @test08_stream_broadcast {
   }
 
   %mem33 = AIE.mem(%tile33) {
-    %dma0 = AIE.dmaStart("S2MM1", ^bd0, ^end)
+    AIE.dmaLaunch(^end, ^bd0, ^end, ^end)
     ^bd0:
       AIE.useLock(%lock33_6, "Acquire", 0)
       AIE.dmaBd(<%buf33_0 : memref<256xi32>, 0, 256>, 0)
@@ -165,7 +165,7 @@ module @test08_stream_broadcast {
   }
 
   %mem34 = AIE.mem(%tile34) {
-    %dma0 = AIE.dmaStart("S2MM1", ^bd0, ^end)
+    AIE.dmaLaunch(^end, ^bd0, ^end, ^end)
     ^bd0:
       AIE.useLock(%lock34_6, "Acquire", 0)
       AIE.dmaBd(<%buf34_0 : memref<256xi32>, 0, 256>, 0)

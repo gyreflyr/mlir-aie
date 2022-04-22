@@ -33,13 +33,13 @@ main(int argc, char *argv[])
   aie_libxaie_ctx_t *_xaie = mlir_aie_init_libxaie();
   mlir_aie_init_device(_xaie);
 
+  mlir_aie_clear_config(_xaie, 7, 1);
+  mlir_aie_clear_config(_xaie, 7, 2);
+  mlir_aie_clear_config(_xaie, 6, 2);
+
   // Run auto generated config functions
 
   mlir_aie_configure_cores(_xaie);
-
-  // get locks
-  mlir_aie_acquire_lock(_xaie, 7, 1, 0, 0, 0);
-  mlir_aie_acquire_lock(_xaie, 7, 1, 1, 0, 0);
 
   mlir_aie_configure_switchboxes(_xaie);
   mlir_aie_initialize_locks(_xaie);
@@ -48,8 +48,8 @@ main(int argc, char *argv[])
   usleep(10000);
 
   uint32_t bd_ctrl, bd_pckt;
-  bd_ctrl = mlir_aie_data_mem_rd_word(_xaie, 7, 1, 0x0001D018);
-  bd_pckt = mlir_aie_data_mem_rd_word(_xaie, 7, 1, 0x0001D010);
+  bd_ctrl = mlir_aie_read32(_xaie, mlir_aie_get_tile_addr(_xaie, 7, 1) + 0x0001D018);
+  bd_pckt = mlir_aie_read32(_xaie, mlir_aie_get_tile_addr(_xaie, 7, 1) + 0x0001D010);
   printf("BD0_71: pckt: %x, ctrl: %x \n", bd_pckt, bd_ctrl);
 
   int count = 256;
@@ -64,15 +64,17 @@ main(int argc, char *argv[])
 
   usleep(10000);
 
-  mlir_aie_release_lock(_xaie, 7, 1, 0, 0, 0); // Release lock
-  mlir_aie_release_lock(_xaie, 7, 1, 1, 0, 0); // Release lock
+  mlir_aie_release_lock(_xaie, 7, 1, 0, 1, 0); // Release lock
+  mlir_aie_release_lock(_xaie, 7, 1, 1, 1, 0); // Release lock
+
+  while (mlir_aie_acquire_lock(_xaie, 6, 2, 0, 1, 0) == 0);
 
   int errors = 0;
   for (int i=0; i<count; i++) {
     uint32_t d71   = mlir_aie_read_buffer_buf62(_xaie, i);
     uint32_t d71_2 = mlir_aie_read_buffer_buf62(_xaie, i + count);
     printf("71[%d]: %x\n", i, d71);
-    printf("71_2[%d]: %x\n", i, d71);
+    printf("71_2[%d]: %x\n", i, d71_2);
     if (d71 != 71)
       errors++;
     if (d71_2 != 71 * 2)

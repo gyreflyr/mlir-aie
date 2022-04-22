@@ -59,9 +59,7 @@ module @test_chess_04_deprecated_shim_dma_precompiled_kernel{
 
   // Tile DMA
   %m73 = AIE.mem(%t73) {
-      %srcDma = AIE.dmaStart("S2MM0", ^bd0, ^dma0)
-    ^dma0:
-      %dstDma = AIE.dmaStart("MM2S1", ^bd2, ^end)
+    AIE.dmaLaunch(^bd0, ^end, ^end, ^bd2)
     ^bd0:
       AIE.useLock(%lock_a_ping, "Acquire", 0)
       AIE.dmaBd(<%buf_a_ping : memref<256xi32>, 0, 256>, 0)
@@ -105,26 +103,19 @@ module @test_chess_04_deprecated_shim_dma_precompiled_kernel{
   // Shim DMA loads large buffer to local memory
   %dma = AIE.shimDMA(%t70) {
       %lock1 = AIE.lock(%t70, 1)
-//      AIE.dmaStart(MM2S0, ^bd0, ^end)
       %lock2 = AIE.lock(%t70, 2)
-      AIE.dmaStart(MM2S0, ^bd0, ^dma)
-    ^dma:
-      AIE.dmaStart(S2MM0, ^bd1, ^end)
+    AIE.dmaLaunch(^bd1, ^end, ^bd0, ^end)
     ^bd0:
       AIE.useLock(%lock1, Acquire, 1)
       AIE.dmaBd(<%buffer_in : memref<512 x i32>, 0, 512>, 0)
       AIE.useLock(%lock1, Release, 0)
       cf.br ^bd0
-//      cf.br ^dma
     ^bd1:
       AIE.useLock(%lock2, Acquire, 1)
       AIE.dmaBd(<%buffer_out : memref<512 x i32>, 0, 512>, 0)
       AIE.useLock(%lock2, Release, 0)
       cf.br ^bd1
-//      cf.br ^end
     ^end:
       AIE.end
   }
-
-
 }

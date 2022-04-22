@@ -555,6 +555,35 @@ mlir::LogicalResult AIETranslateToXAIEV2(ModuleOp module, raw_ostream &output) {
                << "/* dmaDir */ DMA_" << dmaDir << ");\n";
       }
     }
+
+    for (auto &block : op.body()) {
+      for (auto op : block.getOps<DMALaunchOp>()) {
+        int idx = 0;
+        for (size_t i = 0; i < op.getDMAChannels().size(); i++) {
+          Block *dest = op.getDMAChannels()[i];
+          if (!dest->getOps<EndOp>().empty())
+            continue;
+          int bdNum = blockMap[dest];
+          llvm::StringRef dmaChan = op.getDMAChannelName(i);
+          llvm::StringRef dmaDir = dmaChan.substr(0, 4);
+          llvm::StringRef chNum = dmaChan.substr(4, 1);
+          output << "XAie_DmaChannelPushBdToQueue(" << deviceInstRef << ", "
+                 << tileLocStr(col, row) << ", "
+                 << "/* ChNum */" << chNum
+                 << ", "
+                 // TODO hack until physical dialect changes
+                 << "/* dmaDir */ DMA_" << dmaDir << ", "
+                 << "/* BdNum */" << bdNum << ");\n";
+          output << "XAie_DmaChannelEnable(" << deviceInstRef << ", "
+                 << tileLocStr(col, row) << ", "
+                 << "/* ChNum */ " << chNum
+                 << ", "
+                 // TODO hack until physical dialect changes
+                 << "/* dmaDir */ DMA_" << dmaDir << ");\n";
+        }
+      }
+    }
+
     output << "} // mlir_aie_configure_shimdma\n\n";
   }
 
