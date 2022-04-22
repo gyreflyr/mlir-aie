@@ -609,7 +609,7 @@ void mlir_aie_pl_mem_alloc(u32 *host_mm, u64 pl_addr, int size, int dev_buf_id) 
   dev_mm[dev_buf_id] = xrt::bo(device, size * sizeof(u32), xrt::bo::flags::normal, 0);
 
   // Sync host buffer with dev DDR, and then copy it to PL BRAM
-  data_mover_mm_write(dev_mm[dev_buf_id], host_mm, 0x0000 + 0x020100000000LL, size);
+  data_mover_mm_write(dev_mm[dev_buf_id], host_mm, pl_addr, size);
 }
 
 void mlir_aie_pl_sync_mem_cpu(u32 *host_mm, u64 pl_addr, int size, int dev_buf_id) {
