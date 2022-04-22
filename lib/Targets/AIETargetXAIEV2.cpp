@@ -567,6 +567,10 @@ mlir::LogicalResult AIETranslateToXAIEV2(ModuleOp module, raw_ostream &output) {
   for (auto op : module.getOps<TileOp>()) {
     int col = op.colIndex();
     int row = op.rowIndex();
+    // Ignore PL interface tile and Config tile
+    if ((row == 0) && ((col % 4 == 0) || (col % 4 == 1)))
+      continue;
+
     output << "mlir_aie_clear_locks(" << "ctx" << ", "
                                       << col << ", " << row << ");\n";
   }
@@ -672,7 +676,8 @@ mlir::LogicalResult AIETranslateToXAIEV2(ModuleOp module, raw_ostream &output) {
              << "XAIE_SS_PKT_DROP_HEADER"
              << ", " // TODO is this right default???
              << "/* arbiter */ " << arbiter << ", "
-             << "/* MSelEn */ 1);\n"; // TODO do I need mask instead???
+             //<< "/* MSelEn */ 1);\n"; // TODO do I need mask instead???
+             << "/* MSelEn */ " << mask << ");\n";
     }
 
     for (auto connectOp : b.getOps<PacketRulesOp>()) {
