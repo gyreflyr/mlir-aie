@@ -33,26 +33,31 @@ main(int argc, char *argv[])
   aie_libxaie_ctx_t *_xaie = mlir_aie_init_libxaie();
   mlir_aie_init_device(_xaie);
 
+  mlir_aie_clear_config(_xaie, 7, 3);
+  mlir_aie_clear_config(_xaie, 7, 2);
+  mlir_aie_clear_config(_xaie, 7, 1);
+  mlir_aie_clear_config(_xaie, 6, 2);
+
   // Run auto generated config functions
 
   mlir_aie_configure_cores(_xaie);
+  mlir_aie_initialize_locks(_xaie);
 
   // get locks
   mlir_aie_acquire_lock(_xaie, 7, 3, 0, 0, 0);
   mlir_aie_acquire_lock(_xaie, 7, 1, 0, 0, 0);
 
   mlir_aie_configure_switchboxes(_xaie);
-  mlir_aie_initialize_locks(_xaie);
   mlir_aie_configure_dmas(_xaie);
 
   usleep(10000);
 
   uint32_t bd_ctrl, bd_pckt;
-  bd_ctrl = mlir_aie_data_mem_rd_word(_xaie, 7, 1, 0x0001D018);
-  bd_pckt = mlir_aie_data_mem_rd_word(_xaie, 7, 1, 0x0001D010);
+  bd_ctrl = mlir_aie_read32(_xaie, mlir_aie_get_tile_addr(_xaie, 7, 1) + 0x0001D018);
+  bd_pckt = mlir_aie_read32(_xaie, mlir_aie_get_tile_addr(_xaie, 7, 1) + 0x0001D010);
   printf("BD0_71: pckt: %x, ctrl: %x \n", bd_pckt, bd_ctrl);
-  bd_ctrl = mlir_aie_data_mem_rd_word(_xaie, 7, 3, 0x0001D018);
-  bd_pckt = mlir_aie_data_mem_rd_word(_xaie, 7, 3, 0x0001D010);
+  bd_ctrl =  mlir_aie_read32(_xaie, mlir_aie_get_tile_addr(_xaie, 7, 3) + 0x0001D018);
+  bd_pckt =  mlir_aie_read32(_xaie, mlir_aie_get_tile_addr(_xaie, 7, 3) + 0x0001D010);
   printf("BD0_73: pckt: %x, ctrl: %x \n", bd_pckt, bd_ctrl);
 
   int count = 256;
@@ -74,8 +79,12 @@ main(int argc, char *argv[])
   for (int i=0; i<count; i++) {
     uint32_t d73 = mlir_aie_read_buffer_buf62(_xaie, i);
     uint32_t d71 = mlir_aie_read_buffer_buf62(_xaie, i + count);
-    printf("73[%d]: %x\n", i, d73);
-    printf("71[%d]: %x\n", i, d71);
+    if (d73 != 73)
+      errors++;
+    if (d71 != 71)
+      errors++;
+    //printf("73[%d]: %d\n", i, d73);
+    //printf("71[%d]: %d\n", i, d71);
   }
 
   int res = 0;
@@ -83,7 +92,7 @@ main(int argc, char *argv[])
     printf("PASS!\n");
     res = 0;
   } else {
-    printf("fail %d/%d.\n", (count - errors), count);
+    printf("fail %d/%d.\n", (count * 2 - errors), count);
     res = -1;
   }
   mlir_aie_deinit_libxaie(_xaie);

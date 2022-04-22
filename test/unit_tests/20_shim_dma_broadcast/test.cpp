@@ -31,6 +31,10 @@ int main(int argc, char *argv[]) {
   aie_libxaie_ctx_t *_xaie = mlir_aie_init_libxaie();
   mlir_aie_init_device(_xaie);
 
+  mlir_aie_clear_shim_config(_xaie, 7, 0);
+  mlir_aie_clear_config(_xaie, 7, 2);
+  mlir_aie_clear_config(_xaie, 7, 3);
+
   auto col = 7;
 
   mlir_aie_print_tile_status(_xaie, 7, 2);

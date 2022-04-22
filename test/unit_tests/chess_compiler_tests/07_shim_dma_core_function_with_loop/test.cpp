@@ -35,6 +35,10 @@ main(int argc, char *argv[])
     aie_libxaie_ctx_t *_xaie = mlir_aie_init_libxaie();
     mlir_aie_init_device(_xaie);
 
+    mlir_aie_clear_shim_config(_xaie, 7, 0);
+    mlir_aie_clear_config(_xaie, 7, 1);
+    mlir_aie_clear_config(_xaie, 7, 3);
+
     mlir_aie_configure_cores(_xaie);
     mlir_aie_configure_switchboxes(_xaie);
     mlir_aie_initialize_locks(_xaie);

@@ -136,8 +136,8 @@ int main(int argc, char *argv[]) {
   mlir_aie_pl_mem_alloc(ddr_ptr_out, 0x2000 + 0x020100000000LL, DMA_COUNT, 1);
 
 #ifdef LIBXAIENGINEV2
-  mlir_aie_external_set_addr_myBuffer_70_0((u64)ddr_ptr_in);
-  mlir_aie_external_set_addr_myBuffer_70_1((u64)ddr_ptr_out);
+//  mlir_aie_external_set_addr_myBuffer_70_0((u64)ddr_ptr_in);
+//  mlir_aie_external_set_addr_myBuffer_70_1((u64)ddr_ptr_out);
   mlir_aie_configure_shimdma_70(_xaie);
 #endif
 
