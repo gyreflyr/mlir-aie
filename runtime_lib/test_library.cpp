@@ -511,10 +511,15 @@ void mlir_aie_clear_config(aie_libxaie_ctx_t *ctx, int col, int row) {
   clear_range(&(ctx->DevInst), tileAddr, 0x20000, 0x200FF);
   // TileDMA
   clear_range(&(ctx->DevInst), tileAddr, 0x1D000, 0x1D1F8);
-  XAie_Write32(&(ctx->DevInst), tileAddr + 0x1DE00, 0);
-  XAie_Write32(&(ctx->DevInst), tileAddr + 0x1DE08, 0);
-  XAie_Write32(&(ctx->DevInst), tileAddr + 0x1DE10, 0);
-  XAie_Write32(&(ctx->DevInst), tileAddr + 0x1DE08, 0);
+  XAie_Write32(&(ctx->DevInst), tileAddr + 0x1DE00, 2); // channel reset
+  XAie_Write32(&(ctx->DevInst), tileAddr + 0x1DE00, 0); // channel unreset & disable
+  XAie_Write32(&(ctx->DevInst), tileAddr + 0x1DE08, 2); // channel reset
+  XAie_Write32(&(ctx->DevInst), tileAddr + 0x1DE08, 0); // channel unreset & disable
+  XAie_Write32(&(ctx->DevInst), tileAddr + 0x1DE10, 2); // channel reset
+  XAie_Write32(&(ctx->DevInst), tileAddr + 0x1DE10, 0); // channel unreset & disable
+  XAie_Write32(&(ctx->DevInst), tileAddr + 0x1DE18, 2); // channel reset
+  XAie_Write32(&(ctx->DevInst), tileAddr + 0x1DE18, 0); // channel unreset & disable
+
   // Stream Switch master config
   clear_range(&(ctx->DevInst), tileAddr, 0x3F000, 0x3F060);
   // Stream Switch slave config
@@ -523,7 +528,7 @@ void mlir_aie_clear_config(aie_libxaie_ctx_t *ctx, int col, int row) {
   clear_range(&(ctx->DevInst), tileAddr, 0x3F200, 0x3F3AC);
 
   // TODO Check if this works
-  XAie_CoreEnable(&(ctx->DevInst), XAie_TileLoc(col, row));
+//  XAie_CoreEnable(&(ctx->DevInst), XAie_TileLoc(col, row));
 }
 
 void mlir_aie_clear_shim_config(aie_libxaie_ctx_t *ctx, int col, int row) {
@@ -532,11 +537,11 @@ void mlir_aie_clear_shim_config(aie_libxaie_ctx_t *ctx, int col, int row) {
   u64 tileAddr = _XAie_GetTileAddr(&(ctx->DevInst), row, col);
 
   // ShimDMA
-  clear_range(&(ctx->DevInst), tileAddr, 0x1D000, 0x1D13C);
   XAie_Write32(&(ctx->DevInst), tileAddr + 0x1D140, 0);
   XAie_Write32(&(ctx->DevInst), tileAddr + 0x1D148, 0);
   XAie_Write32(&(ctx->DevInst), tileAddr + 0x1D150, 0);
   XAie_Write32(&(ctx->DevInst), tileAddr + 0x1D158, 0);
+  clear_range(&(ctx->DevInst), tileAddr, 0x1D000, 0x1D13C);
 
   // Stream Switch master config
   clear_range(&(ctx->DevInst), tileAddr, 0x3F000, 0x3F058);
@@ -547,25 +552,33 @@ void mlir_aie_clear_shim_config(aie_libxaie_ctx_t *ctx, int col, int row) {
 }
 
 void mlir_aie_clear_locks(aie_libxaie_ctx_t *ctx, int col, int row) {
+  // Disable the core before releasing locks
+  if (row != 0)
+    XAie_CoreDisable(&(ctx->DevInst), XAie_TileLoc(col, row));
+
   u64 tileAddr = _XAie_GetTileAddr(&(ctx->DevInst), row, col);
   // Keep trying until all locks are released
-  int num_trials = 4;
   u32 locks_offset = 0x01EF00;
   // Shim NOC tile has different lock address
   if (row == 0)
     locks_offset = 0x014F00;
   u32 locks = 0;
-  for (int i = 0; i < num_trials; i++) {
+  XAie_Read32(&(ctx->DevInst), tileAddr + locks_offset, &locks);
+  printf("Clearing all locks of Tile(%d, %d) ... Current lock status: %x\n",
+    col, row, locks);
+  int count = 0;
+  int max_tries = 100;
+  while ((locks != 0) && (count < max_tries)) {
+    for (int j = 0; j < 16; j++)
+      mlir_aie_release_lock(ctx, col, row, j, 0, 0);
+
     XAie_Read32(&(ctx->DevInst), tileAddr + locks_offset, &locks);
-    // OK
-    if (locks == 0)
-      return;
-
-    for (int i = 0; i < 16; i++)
-      mlir_aie_release_lock(ctx, col, row, i, 0, 0);
+    count++;
   }
-
-  printf("Errors! Could not clear all locks of Tile(%d, %d)!", col, row);
+  if (locks == 0)
+    printf("All locks of Tile(%d, %d) are clear in %d tries\n", col, row, count);
+  else
+    printf("[Warning] Not all locks of Tile(%d, %d) are clear in %d tries\n", col, row, max_tries);
 }
 
 void mlir_aie_init_mems(aie_libxaie_ctx_t *ctx, int numBufs) {
@@ -589,6 +602,18 @@ void mlir_aie_sync_mem_cpu(aie_libxaie_ctx_t *ctx, int bufIdx) {
 
 void mlir_aie_sync_mem_dev(aie_libxaie_ctx_t *ctx, int bufIdx) {
   XAie_MemSyncForDev(ctx->buffers[bufIdx]);
+}
+
+void mlir_aie_pl_mem_alloc(u32 *host_mm, u64 pl_addr, int size, int dev_buf_id) {
+  // device buffers (device DDR)
+  dev_mm[dev_buf_id] = xrt::bo(device, size * sizeof(u32), xrt::bo::flags::normal, 0);
+
+  // Sync host buffer with dev DDR, and then copy it to PL BRAM
+  data_mover_mm_write(dev_mm[dev_buf_id], host_mm, 0x0000 + 0x020100000000LL, size);
+}
+
+void mlir_aie_pl_sync_mem_cpu(u32 *host_mm, u64 pl_addr, int size, int dev_buf_id) {
+  data_mover_mm_read(dev_mm[dev_buf_id], host_mm, pl_addr, size, false);
 }
 
 /*

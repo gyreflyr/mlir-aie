@@ -47,6 +47,9 @@ main(int argc, char *argv[])
     XAieDma_TileChResetAll(&TileDmaInst_7_3);
     */
 
+    mlir_aie_clear_shim_config(_xaie, 7, 0);
+    mlir_aie_clear_config(_xaie, 7, 3);
+
     mlir_aie_configure_cores(_xaie);
     mlir_aie_configure_switchboxes(_xaie);
     for (int l=0; l<16; l++){
@@ -108,20 +111,29 @@ main(int argc, char *argv[])
     */
     mlir_aie_init_mems(_xaie, 2);
 #define DMA_COUNT 512
-    int *ddr_ptr_in =
-        mlir_aie_mem_alloc(_xaie, 0, 0x4000 + 0x020100000000LL, DMA_COUNT);
-    int *ddr_ptr_out =
-        mlir_aie_mem_alloc(_xaie, 1, 0x6000 + 0x020100000000LL, DMA_COUNT);
+//    int *ddr_ptr_in =
+//        mlir_aie_mem_alloc(_xaie, 0, 0x4000 + 0x020100000000LL, DMA_COUNT);
+//    int *ddr_ptr_out =
+//        mlir_aie_mem_alloc(_xaie, 1, 0x6000 + 0x020100000000LL, DMA_COUNT);
+//    for (int i = 0; i < DMA_COUNT; i++) {
+//      *(ddr_ptr_in + i) = i;
+//      *(ddr_ptr_out + i) = 0;
+//    }
+//    mlir_aie_sync_mem_dev(_xaie, 0); // only used in libaiev2
+//    mlir_aie_sync_mem_dev(_xaie, 1); // only used in libaiev2
+
+    u32 *ddr_ptr_in  = new u32 [DMA_COUNT];
+    u32 *ddr_ptr_out = new u32 [DMA_COUNT];
     for (int i = 0; i < DMA_COUNT; i++) {
-      *(ddr_ptr_in + i) = i;
-      *(ddr_ptr_out + i) = 0;
+      ddr_ptr_in[i]  = i;
+      ddr_ptr_out[i] = 0;
     }
-    mlir_aie_sync_mem_dev(_xaie, 0); // only used in libaiev2
-    mlir_aie_sync_mem_dev(_xaie, 1); // only used in libaiev2
+    mlir_aie_pl_mem_alloc(ddr_ptr_in,  0x0000 + 0x020100000000LL, DMA_COUNT, 0);
+    mlir_aie_pl_mem_alloc(ddr_ptr_out, 0x2000 + 0x020100000000LL, DMA_COUNT, 1);
 
 #ifdef LIBXAIENGINEV2
-    mlir_aie_external_set_addr_myBuffer_70_0((u64)ddr_ptr_in);
-    mlir_aie_external_set_addr_myBuffer_70_1((u64)ddr_ptr_out);
+//    mlir_aie_external_set_addr_myBuffer_70_0((u64)ddr_ptr_in);
+//    mlir_aie_external_set_addr_myBuffer_70_1((u64)ddr_ptr_out);
     mlir_aie_configure_shimdma_70(_xaie);
 #endif
 
@@ -189,7 +201,8 @@ main(int argc, char *argv[])
     mlir_aie_check("After", mlir_aie_read_buffer_b_ping(_xaie, 0), 385, errors);
     mlir_aie_check("After", mlir_aie_read_buffer_b_pong(_xaie, 0), 449, errors);
 
-    mlir_aie_sync_mem_cpu(_xaie, 1); // only used in libaiev2
+    //mlir_aie_sync_mem_cpu(_xaie, 1); // only used in libaiev2
+    mlir_aie_pl_sync_mem_cpu(ddr_ptr_out, 0x2000 + 0x020100000000LL, DMA_COUNT, 1);
 
     // Dump contents of ddr_ptr_out
     for (int i=0; i<16; i++) {

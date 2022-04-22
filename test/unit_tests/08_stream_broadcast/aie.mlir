@@ -63,7 +63,7 @@ module @test08_stream_broadcast {
       AIE.useLock(%lock13_5, "Acquire", 1)
       AIE.dmaBd(<%buf13_1 : memref<256xi32>, 0, 256>, 0)
       AIE.useLock(%lock13_5, "Release", 0)
-      cf.br ^end // point to the next BD, or termination
+      cf.br ^bd0 // point to the next BD, or termination
     ^end:
       AIE.end
   }
@@ -100,7 +100,7 @@ module @test08_stream_broadcast {
       AIE.useLock(%lock32_6, "Acquire", 0)
       AIE.dmaBd(<%buf32_0 : memref<256xi32>, 0, 256>, 0)
       AIE.useLock(%lock32_6, "Release", 1)
-      cf.br ^end // point to the next BD, or termination
+      cf.br ^bd0 // point to the next BD, or termination
     ^end:
       AIE.end
   }
@@ -135,7 +135,7 @@ module @test08_stream_broadcast {
       AIE.useLock(%lock33_6, "Acquire", 0)
       AIE.dmaBd(<%buf33_0 : memref<256xi32>, 0, 256>, 0)
       AIE.useLock(%lock33_6, "Release", 1)
-      cf.br ^end // point to the next BD, or termination
+      cf.br ^bd0 // point to the next BD, or termination
     ^end:
       AIE.end
   }
@@ -170,7 +170,7 @@ module @test08_stream_broadcast {
       AIE.useLock(%lock34_6, "Acquire", 0)
       AIE.dmaBd(<%buf34_0 : memref<256xi32>, 0, 256>, 0)
       AIE.useLock(%lock34_6, "Release", 1)
-      cf.br ^end // point to the next BD, or termination
+      cf.br ^bd0 // point to the next BD, or termination
     ^end:
       AIE.end
   }

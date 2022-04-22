@@ -211,6 +211,9 @@ int *mlir_aie_mem_alloc(aie_libxaie_ctx_t *ctx, int bufIdx, u64 addr, int size);
 void mlir_aie_sync_mem_cpu(aie_libxaie_ctx_t *ctx, int bufIdx);
 void mlir_aie_sync_mem_dev(aie_libxaie_ctx_t *ctx, int bufIdx);
 
+void mlir_aie_pl_mem_alloc(u32 *host_mm, u64 pl_addr, int size, int dev_buf_id);
+void mlir_aie_pl_sync_mem_cpu(u32 *host_mm, u64 pl_addr, int size, int dev_buf_id);
+
 } // extern "C"
 
 #endif

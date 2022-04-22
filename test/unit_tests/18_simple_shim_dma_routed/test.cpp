@@ -36,6 +36,8 @@ int main(int argc, char *argv[]) {
   mlir_aie_init_device(_xaie);
 
   auto col = 7;
+  mlir_aie_clear_shim_config(_xaie, 7, 0);
+  mlir_aie_clear_config(_xaie, 7, 2);
 
   mlir_aie_print_tile_status(_xaie, 7, 2);
 
@@ -64,15 +66,22 @@ int main(int argc, char *argv[]) {
   */
   mlir_aie_init_mems(_xaie, 1);
 #define DMA_COUNT 512
-  int *ddr_ptr_in =
-      mlir_aie_mem_alloc(_xaie, 0, 0x4000 + 0x020100000000LL, DMA_COUNT);
+//  int *ddr_ptr_in =
+//      mlir_aie_mem_alloc(_xaie, 0, 0x4000 + 0x020100000000LL, DMA_COUNT);
+//  for (int i = 0; i < DMA_COUNT; i++) {
+//    *(ddr_ptr_in + i) = i + 1;
+//  }
+//  mlir_aie_sync_mem_dev(_xaie, 0); // only used in libaiev2
+
+
+  u32 *ddr_ptr_in  = new u32 [DMA_COUNT];
   for (int i = 0; i < DMA_COUNT; i++) {
-    *(ddr_ptr_in + i) = i + 1;
+    ddr_ptr_in[i]  = i + 1;
   }
-  mlir_aie_sync_mem_dev(_xaie, 0); // only used in libaiev2
+  mlir_aie_pl_mem_alloc(ddr_ptr_in,  0x0000 + 0x020100000000LL, DMA_COUNT, 0);
 
 #ifdef LIBXAIENGINEV2
-  mlir_aie_external_set_addr_myBuffer_70_0((u64)ddr_ptr_in);
+//  mlir_aie_external_set_addr_myBuffer_70_0((u64)ddr_ptr_in);
   mlir_aie_configure_shimdma_70(_xaie);
 #endif
 

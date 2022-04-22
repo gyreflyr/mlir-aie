@@ -1,8 +1,9 @@
 #include "common.h"
 
 xrt::device device = xrt::device(DEVICE_ID);
-xrt::uuid xclbin_uuid = device.load_xclbin("ulp.xclbin");
+xrt::uuid xclbin_uuid = device.load_xclbin("/home/bwrc/tan-mlir-aie/runtime_lib/ulp.xclbin");
 xrt::ip data_mover = xrt::ip(device, xclbin_uuid, "data_mover_mm2mm");
+xrt::bo dev_mm[16];
 
 extern "C" AieRC PL_Write32(u64 Addr, u32 Value) {
   //std::cout << "PL_Write32 " << std::hex << Addr << " " << Value << std::dec << '\n';

@@ -33,6 +33,10 @@ main(int argc, char *argv[])
   aie_libxaie_ctx_t *_xaie = mlir_aie_init_libxaie();
   mlir_aie_init_device(_xaie);
 
+  mlir_aie_clear_shim_config(_xaie, 7, 0);
+  mlir_aie_clear_config(_xaie, 7, 1);
+  mlir_aie_clear_config(_xaie, 7, 2);
+
   // Run auto generated config functions
   mlir_aie_configure_cores(_xaie);
   mlir_aie_configure_switchboxes(_xaie);
@@ -44,12 +48,18 @@ main(int argc, char *argv[])
 #define DMA_COUNT 512
   // libxaiev1; returns physical addr to bram.
   // libxaiev2: returns virtual addr to allocated buffer in ddr
-  int *mem_ptr =
-      mlir_aie_mem_alloc(_xaie, 0, 0x4000 + 0x020100000000LL, DMA_COUNT);
+//  int *mem_ptr =
+//      mlir_aie_mem_alloc(_xaie, 0, 0x4000 + 0x020100000000LL, DMA_COUNT);
+//  for (int i = 0; i < DMA_COUNT; i++) {
+//    *(mem_ptr + i) = i + 1;
+//  }
+//  mlir_aie_sync_mem_dev(_xaie, 0); // only used in libaiev2
+
+  u32 *host_mm0 = new u32 [DMA_COUNT];
   for (int i = 0; i < DMA_COUNT; i++) {
-    *(mem_ptr + i) = i + 1;
+    host_mm0[i] = i + 1;
   }
-  mlir_aie_sync_mem_dev(_xaie, 0); // only used in libaiev2
+  mlir_aie_pl_mem_alloc(host_mm0, 0x0000 + 0x020100000000LL, DMA_COUNT, 0);
 
   // We're going to stamp over the memory
   for (int i=0; i<DMA_COUNT; i++) {
@@ -57,7 +67,7 @@ main(int argc, char *argv[])
   }
 
 #ifdef LIBXAIENGINEV2
-  mlir_aie_external_set_addr_myBuffer_70_0((u64)mem_ptr);
+//  mlir_aie_external_set_addr_myBuffer_70_0((u64)mem_ptr);
   mlir_aie_configure_shimdma_70(_xaie);
 #endif
 

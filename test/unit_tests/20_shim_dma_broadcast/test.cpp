@@ -46,18 +46,27 @@ int main(int argc, char *argv[]) {
   // XAieDma_Shim ShimDmaInst1;
   uint32_t *bram_ptr;
 
-#define BRAM_ADDR (0x4000 + 0x020100000000LL)
+//#define BRAM_ADDR (0x4000 + 0x020100000000LL)
+#define BRAM_ADDR (0x0000 + 0x020100000000LL)
 #define DMA_COUNT 512
 
-  int fd = open("/dev/mem", O_RDWR | O_SYNC);
-  if (fd != -1) {
-    bram_ptr = (uint32_t *)mmap(NULL, 0x8000, PROT_READ | PROT_WRITE,
-                                MAP_SHARED, fd, BRAM_ADDR);
-    for (int i = 0; i < DMA_COUNT; i++) {
-      bram_ptr[i] = i + 1;
-      // printf("%p %llx\n", &bram_ptr[i], bram_ptr[i]);
-    }
+//  int fd = open("/dev/mem", O_RDWR | O_SYNC);
+//  if (fd != -1) {
+//    bram_ptr = (uint32_t *)mmap(NULL, 0x8000, PROT_READ | PROT_WRITE,
+//                                MAP_SHARED, fd, BRAM_ADDR);
+//    for (int i = 0; i < DMA_COUNT; i++) {
+//      bram_ptr[i] = i + 1;
+//      // printf("%p %llx\n", &bram_ptr[i], bram_ptr[i]);
+//    }
+//  }
+
+  u32 *bram  = new u32 [DMA_COUNT];
+  for (int i = 0; i < DMA_COUNT; i++) {
+    bram[i]  = i + 1;
   }
+  mlir_aie_pl_mem_alloc(bram,  0x0000 + 0x020100000000LL, DMA_COUNT, 0);
+
+  mlir_aie_configure_shimdma_70(_xaie);
 
   // We're going to stamp over the memory
   for (int i = 0; i < DMA_COUNT; i++) {

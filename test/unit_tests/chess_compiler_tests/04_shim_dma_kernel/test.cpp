@@ -110,20 +110,29 @@ main(int argc, char *argv[])
     */
     mlir_aie_init_mems(_xaie, 2);
 #define DMA_COUNT 512
-    int *ddr_ptr_in =
-        mlir_aie_mem_alloc(_xaie, 0, 0x4000 + 0x020100000000LL, DMA_COUNT);
-    int *ddr_ptr_out =
-        mlir_aie_mem_alloc(_xaie, 1, 0x6000 + 0x020100000000LL, DMA_COUNT);
+//    int *ddr_ptr_in =
+//        mlir_aie_mem_alloc(_xaie, 0, 0x4000 + 0x020100000000LL, DMA_COUNT);
+//    int *ddr_ptr_out =
+//        mlir_aie_mem_alloc(_xaie, 1, 0x6000 + 0x020100000000LL, DMA_COUNT);
+//    for (int i = 0; i < DMA_COUNT; i++) {
+//      *(ddr_ptr_in + i) = i + 1;
+//      *(ddr_ptr_out + i) = 0;
+//    }
+//    mlir_aie_sync_mem_dev(_xaie, 0); // only used in libaiev2
+//    mlir_aie_sync_mem_dev(_xaie, 1); // only used in libaiev2
+
+    u32 *ddr_ptr_in  = new u32 [DMA_COUNT];
+    u32 *ddr_ptr_out = new u32 [DMA_COUNT];
     for (int i = 0; i < DMA_COUNT; i++) {
-      *(ddr_ptr_in + i) = i + 1;
-      *(ddr_ptr_out + i) = 0;
+      ddr_ptr_in[i]  = i + 1;
+      ddr_ptr_out[i] = 0;
     }
-    mlir_aie_sync_mem_dev(_xaie, 0); // only used in libaiev2
-    mlir_aie_sync_mem_dev(_xaie, 1); // only used in libaiev2
+    mlir_aie_pl_mem_alloc(ddr_ptr_in,  0x0000 + 0x020100000000LL, DMA_COUNT, 0);
+    mlir_aie_pl_mem_alloc(ddr_ptr_out, 0x2000 + 0x020100000000LL, DMA_COUNT, 1);
 
 #ifdef LIBXAIENGINEV2
-    mlir_aie_external_set_addr_myBuffer_70_0((u64)ddr_ptr_in);
-    mlir_aie_external_set_addr_myBuffer_70_1((u64)ddr_ptr_out);
+//    mlir_aie_external_set_addr_myBuffer_70_0((u64)ddr_ptr_in);
+//    mlir_aie_external_set_addr_myBuffer_70_1((u64)ddr_ptr_out);
     mlir_aie_configure_shimdma_70(_xaie);
 #endif
 
@@ -200,7 +209,8 @@ main(int argc, char *argv[])
                 printf("ddr_ptr_out[%d] = %d\n", i, d);
         }
     */
-    mlir_aie_sync_mem_cpu(_xaie, 1); // only used in libaiev2
+    //mlir_aie_sync_mem_cpu(_xaie, 1); // only used in libaiev2
+    mlir_aie_pl_sync_mem_cpu(ddr_ptr_out, 0x2000 + 0x020100000000LL, DMA_COUNT, 1);
     mlir_aie_check("DDR out", ddr_ptr_out[5], 20, errors);
     mlir_aie_check("DDR out", ddr_ptr_out[256 + 5], (256 + 4) * 5, errors);
 

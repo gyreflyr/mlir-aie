@@ -51,7 +51,7 @@ module @test22_stream_packet {
       //AIE.dmaBdPacket(0x5, 0x1) // (pkt_type, pkt_id)
       AIE.dmaBd(<%buf71_1 : memref<256xi32>, 0, 256>, 0) { pkt_id = 0x1, pkt_type = 0x5 }
       AIE.useLock(%l71_1, "Release", 0)
-      cf.br ^end
+      cf.br ^bd0
     ^end:
       AIE.end
   }
@@ -65,7 +65,7 @@ module @test22_stream_packet {
       AIE.useLock(%l62, "Acquire", 0)
       AIE.dmaBd(<%buf62 : memref<512xi32>, 0, 512>, 0)
       AIE.useLock(%l62, "Release", 1)
-      cf.br ^end
+      cf.br ^bd0
     ^end:
       AIE.end
   }  
