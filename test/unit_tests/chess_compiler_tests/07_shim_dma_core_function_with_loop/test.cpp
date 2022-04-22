@@ -76,8 +76,8 @@ main(int argc, char *argv[])
     mlir_aie_print_shimdma_status(_xaie, 7, 0);
 
 #ifdef LIBXAIENGINEV2
-    mlir_aie_external_set_addr_myBuffer_70_0((u64)ddr_ptr_in);
-    mlir_aie_external_set_addr_myBuffer_70_1((u64)ddr_ptr_out);
+//    mlir_aie_external_set_addr_myBuffer_70_0((u64)ddr_ptr_in);
+//    mlir_aie_external_set_addr_myBuffer_70_1((u64)ddr_ptr_out);
     mlir_aie_configure_shimdma_70(_xaie);
 #endif
 
