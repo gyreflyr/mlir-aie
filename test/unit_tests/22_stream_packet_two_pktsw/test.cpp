@@ -20,6 +20,8 @@
 #include <xaiengine.h>
 #include "test_library.h"
 
+#define LOCK_TIMEOUT 100
+
 #include "aie_inc.cpp"
 
 int main(int argc, char *argv[])
@@ -62,9 +64,12 @@ int main(int argc, char *argv[])
   mlir_aie_release_lock(_xaie, 7, 1, 1, 1, 0); // Release lock
   mlir_aie_release_lock(_xaie, 7, 1, 2, 1, 0); // Release lock
 
-  while (mlir_aie_acquire_lock(_xaie, 6, 2, 0, 1, 0) == 0);
-  while (mlir_aie_acquire_lock(_xaie, 6, 2, 1, 1, 0) == 0);
-  while (mlir_aie_acquire_lock(_xaie, 6, 2, 2, 1, 0) == 0);
+  if (!mlir_aie_acquire_lock(_xaie, 6, 2, 0, 1, LOCK_TIMEOUT)) {
+    printf("ERROR: trying to acquire lock(6, 2)[0] -- timeout hit!\n");
+  }
+  if (!mlir_aie_acquire_lock(_xaie, 6, 2, 1, 1, LOCK_TIMEOUT)) {
+    printf("ERROR: trying to acquire lock(6, 2)[1] -- timeout hit!\n");
+  }
 
   int errors = 0;
   for (int i=0; i<count; i++) {

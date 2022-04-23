@@ -26,7 +26,7 @@ module @test22_stream_packet_two_pktsw {
 
   %sw72 = AIE.switchbox(%t72) {
     %a1_m0 = AIE.amsel<1> (0)
-    AIE.masterset(West : 3, %a1_m0) { drop_header=false }
+    AIE.masterset(West : 3, %a1_m0) { drop_header = false }
     AIE.packetrules(South : 0)  {
       AIE.rule(0x1e, 0, %a1_m0)
     }
@@ -87,7 +87,7 @@ module @test22_stream_packet_two_pktsw {
     AIE.dmaLaunch(^bd0, ^bd1, ^end, ^end)
     ^bd0:
       AIE.useLock(%l62_0, "Acquire", 0)
-      AIE.dmaBd(<%buf62_0 : memref<512xi32>, 0, 256>, 0)
+      AIE.dmaBd(<%buf62_0 : memref<512xi32>, 0, 512>, 0)
       AIE.useLock(%l62_0, "Release", 1)
       cf.br ^bd0
     ^bd1:

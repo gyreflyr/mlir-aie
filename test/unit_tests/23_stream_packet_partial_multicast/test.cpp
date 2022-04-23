@@ -20,6 +20,7 @@
 #include <xaiengine.h>
 #include "test_library.h"
 
+#define LOCK_TIMEOUT 100
 #define HIGH_ADDR(addr)	((addr & 0xffffffff00000000) >> 32)
 #define LOW_ADDR(addr)	(addr & 0x00000000ffffffff)
 
@@ -61,8 +62,12 @@ main(int argc, char *argv[])
   mlir_aie_release_lock(_xaie, 7, 1, 0, 1, 0); // Release lock
   mlir_aie_release_lock(_xaie, 7, 1, 1, 1, 0); // Release lock
 
-  while (mlir_aie_acquire_lock(_xaie, 7, 2, 0, 1, 0) == 0);
-  while (mlir_aie_acquire_lock(_xaie, 6, 1, 0, 1, 0) == 0);
+  if (!mlir_aie_acquire_lock(_xaie, 7, 2, 0, 1, LOCK_TIMEOUT)) {
+    printf("ERROR: trying to acquire lock(7, 2)[0] -- timeout hit!\n");
+  }
+  if (!mlir_aie_acquire_lock(_xaie, 6, 1, 0, 1, LOCK_TIMEOUT)) {
+    printf("ERROR: trying to acquire lock(6, 1)[0] -- timeout hit!\n");
+  }
 
   int errors = 0;
   for (int i=0; i<count; i++) {
