@@ -264,10 +264,13 @@ mlir::LogicalResult AIETranslateToXAIEV2(ModuleOp module, raw_ostream &output) {
           hasB = true;
         }
 
-        if (op.pkt_id() && op.pkt_type()) {
+        if (op.pkt_id()) {
           foundBdPacket = true;
-          packetType = op.getPktTypeValue();
           packetID = op.getPktIdValue();
+          if (op.pkt_type())
+            packetType = op.getPktTypeValue();
+          else
+            packetType = 0;
         }
       }
 
@@ -696,16 +699,17 @@ mlir::LogicalResult AIETranslateToXAIEV2(ModuleOp module, raw_ostream &output) {
         int msel = amsel.getMselValue();
         mask |= (1 << msel);
       }
+      bool IsPktDropHeader = connectOp.drop_header();
 
       output << "XAie_StrmPktSwMstrPortEnable(" << deviceInstRef << ", "
              << tileLocStr("x", "y") << ", "
              << stringifyWireBundle(connectOp.destBundle()).upper() << ", "
              << connectOp.destIndex() << ", "
              << "/* drop_header */ "
-             << "XAIE_SS_PKT_DROP_HEADER"
-             << ", " // TODO is this right default???
+             << (IsPktDropHeader ? "XAIE_SS_PKT_DROP_HEADER" :
+                                   "XAIE_SS_PKT_DONOT_DROP_HEADER")
+             << ", " 
              << "/* arbiter */ " << arbiter << ", "
-             //<< "/* MSelEn */ 1);\n"; // TODO do I need mask instead???
              << "/* MSelEn */ " << mask << ");\n";
     }
 

@@ -548,6 +548,13 @@ def AIE_MasterSetOp: AIE_Op<"masterset", [HasParent<"SwitchboxOp">]>, Results<(o
   let extraClassDeclaration = [{
     int destIndex() { return destChannel(); }
     Port destPort() { return std::make_pair(destBundle(), destIndex()); }
+    bool drop_header() {
+      if (auto attr = getOperation()->getAttrOfType<BoolAttr>("drop_header")) {
+        return attr.getValue();
+      }
+
+      return true; // default is dropping header
+    }
   }];
 }
 

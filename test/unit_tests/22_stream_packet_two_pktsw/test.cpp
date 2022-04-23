@@ -20,24 +20,16 @@
 #include <xaiengine.h>
 #include "test_library.h"
 
-#define HIGH_ADDR(addr)	((addr & 0xffffffff00000000) >> 32)
-#define LOW_ADDR(addr)	(addr & 0x00000000ffffffff)
-
 #include "aie_inc.cpp"
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
-  auto col = 7;
-
   aie_libxaie_ctx_t *_xaie = mlir_aie_init_libxaie();
   mlir_aie_init_device(_xaie);
 
   mlir_aie_clear_config(_xaie, 7, 1);
   mlir_aie_clear_config(_xaie, 7, 2);
   mlir_aie_clear_config(_xaie, 6, 2);
-
-  // Run auto generated config functions
 
   mlir_aie_configure_cores(_xaie);
 
@@ -58,27 +50,39 @@ main(int argc, char *argv[])
   for (int i=0; i<count; i++) {
     mlir_aie_write_buffer_buf71_0(_xaie, i, 71);
     mlir_aie_write_buffer_buf71_1(_xaie, i, 71 * 2);
-    mlir_aie_write_buffer_buf62(_xaie, i, 1);
-    mlir_aie_write_buffer_buf62(_xaie, i + count, 1);
+    mlir_aie_write_buffer_buf71_2(_xaie, i, 71 * 3);
+    mlir_aie_write_buffer_buf62_0(_xaie, i, 1);
+    mlir_aie_write_buffer_buf62_1(_xaie, i + count, 1);
+    mlir_aie_write_buffer_buf62_1(_xaie, i, 1);
   }
 
   usleep(10000);
 
   mlir_aie_release_lock(_xaie, 7, 1, 0, 1, 0); // Release lock
   mlir_aie_release_lock(_xaie, 7, 1, 1, 1, 0); // Release lock
+  mlir_aie_release_lock(_xaie, 7, 1, 2, 1, 0); // Release lock
 
   while (mlir_aie_acquire_lock(_xaie, 6, 2, 0, 1, 0) == 0);
+  while (mlir_aie_acquire_lock(_xaie, 6, 2, 1, 1, 0) == 0);
+  while (mlir_aie_acquire_lock(_xaie, 6, 2, 2, 1, 0) == 0);
 
   int errors = 0;
   for (int i=0; i<count; i++) {
-    uint32_t d71   = mlir_aie_read_buffer_buf62(_xaie, i);
-    uint32_t d71_2 = mlir_aie_read_buffer_buf62(_xaie, i + count);
-    printf("71[%d]: %x\n", i, d71);
-    printf("71_2[%d]: %x\n", i, d71_2);
-    if (d71 != 71)
+    if (mlir_aie_read_buffer_buf62_0(_xaie, i) != 71) {
+      printf("buf62_0[%d] mismatched: %d, expect 71\n",
+        i, mlir_aie_read_buffer_buf62_0(_xaie, i));
       errors++;
-    if (d71_2 != 71 * 2)
+    }
+    if (mlir_aie_read_buffer_buf62_0(_xaie, i + count) != 71 * 2) {
+      printf("buf62_0[%d] mismatched: %d, expect %d\n",
+        i + count, mlir_aie_read_buffer_buf62_0(_xaie, i + count), 71 * 2);
       errors++;
+    }
+    if (mlir_aie_read_buffer_buf62_1(_xaie, i) != 71 * 3) {
+      printf("buf62_1[%d] mismatched: %d, expect %d\n",
+        i, mlir_aie_read_buffer_buf62_1(_xaie, i), 71 * 3);
+      errors++;
+    }
   }
 
   int res = 0;
@@ -86,7 +90,7 @@ main(int argc, char *argv[])
     printf("PASS!\n");
     res = 0;
   } else {
-    printf("fail %d/%d.\n", (count * 2 - errors), count * 2);
+    printf("Failed! Num. errors: %d\n", errors);
     res = -1;
   }
   mlir_aie_deinit_libxaie(_xaie);
