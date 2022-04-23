@@ -486,10 +486,6 @@ static LogicalResult verify(xilinx::AIE::MemOp op) {
     if (!block.getOps<xilinx::AIE::DMABDOp>().empty()) {
       if (!block.getOps<xilinx::AIE::EndOp>().empty())
         op.emitOpError() << "BD Block should not contain AIE EndOp\n";
-
-      if (block.hasNoPredecessors() ||
-          (block.getNumSuccessors() == 1 && block.getSuccessors()[0] == &block))
-        op.emitOpError() << "Found dangling BD Block (not owned by any DMA channel)\n";
     }
   }
 
