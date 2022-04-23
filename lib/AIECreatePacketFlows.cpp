@@ -607,9 +607,17 @@ struct AIERoutePacketFlowsPass
           amsels.push_back(amselOps[msel]);
         }
 
-        builder.create<MasterSetOp>(builder.getUnknownLoc(),
-                                    builder.getIndexType(), bundle, channel,
-                                    amsels);
+        auto op = builder.create<MasterSetOp>(builder.getUnknownLoc(),
+                                              builder.getIndexType(), bundle,
+                                              channel, amsels);
+
+        // For now, we assume that we always want to drop packet header
+        // if the master is a consumer of packet data
+        if (bundle == WireBundle::DMA || bundle == WireBundle::Core ||
+            bundle == WireBundle::FIFO)
+          op.getOperation()->setAttr("drop_header", builder.getBoolAttr(true));
+        else
+          op.getOperation()->setAttr("drop_header", builder.getBoolAttr(false));
       }
 
       // Generate the packet rules
