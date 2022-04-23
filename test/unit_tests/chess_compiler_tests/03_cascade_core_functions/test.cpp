@@ -33,6 +33,7 @@ main(int argc, char *argv[])
 
     aie_libxaie_ctx_t *_xaie = mlir_aie_init_libxaie();
     mlir_aie_init_device(_xaie);
+    mlir_aie_clear_all_configs(_xaie);
 
     mlir_aie_clear_tile_memory(_xaie, 1, 3);
     mlir_aie_clear_tile_memory(_xaie, 2, 3);

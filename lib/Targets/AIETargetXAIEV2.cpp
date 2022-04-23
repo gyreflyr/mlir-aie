@@ -594,19 +594,6 @@ mlir::LogicalResult AIETranslateToXAIEV2(ModuleOp module, raw_ostream &output) {
   // mlir_aie_initialize_locks
   //---------------------------------------------------------------------------
   output << "void mlir_aie_initialize_locks(" << ctx_p << ") {\n";
-  // First, ensure that all the locks being used are released to 0
-  // Better safe than sorry: check all tiles
-  for (auto op : module.getOps<TileOp>()) {
-    int col = op.colIndex();
-    int row = op.rowIndex();
-    // Ignore PL interface tile and Config tile
-    if ((row == 0) && ((col % 4 == 0) || (col % 4 == 1)))
-      continue;
-
-    output << "mlir_aie_clear_locks(" << "ctx" << ", "
-                                      << col << ", " << row << ");\n";
-  }
-
   // Lock configuration
   for (auto op : module.getOps<UseLockOp>()) {
     int lockVal = op.getLockValue();
@@ -627,6 +614,42 @@ mlir::LogicalResult AIETranslateToXAIEV2(ModuleOp module, raw_ostream &output) {
     }
   }
   output << "} // mlir_aie_initialize_locks\n";
+
+  //---------------------------------------------------------------------------
+  // mlir_aie_clear_all_configs
+  //---------------------------------------------------------------------------
+  output << "void mlir_aie_clear_all_configs(" << ctx_p << ") {\n";
+  // Better safe than sorry: check all tiles being used
+  for (auto op : module.getOps<TileOp>()) {
+    int col = op.colIndex();
+    int row = op.rowIndex();
+    // Ignore PL interface tile and Config tile
+    if ((row == 0) && ((col % 4 == 0) || (col % 4 == 1)))
+      continue;
+
+    bool IsMemUsed = mems.count(op.getOperation()) == 0;
+    bool IsSwbUsed = switchboxes.count(op.getOperation()) == 0;
+    bool IsCoreUsed = cores.count(op.getOperation()) == 0;
+
+    if (!(IsMemUsed || IsSwbUsed || IsCoreUsed))
+      continue;
+
+    // TODO: check if shim switchbox exists
+    if ((row == 0) && ((col % 4 == 2) || (col % 4 == 3)))
+      // Clear shim config (only applicable to shim tiles)
+      output << "mlir_aie_clear_shim_config(" << "ctx" << ", "
+                                              << col << ", " << row << ");\n";
+    else
+      // Clear program memory, DMA config, and Strean Switch config
+      output << "mlir_aie_clear_config(" << "ctx" << ", "
+                                         << col << ", " << row << ");\n";
+
+    // Ensure that all the locks being used are released to 0
+    output << "mlir_aie_clear_locks(" << "ctx" << ", "
+                                      << col << ", " << row << ");\n";
+
+  }
+  output << "} // mlir_aie_clear_all_configs\n";
 
   //---------------------------------------------------------------------------
   // mlir_aie_configure_switchboxes

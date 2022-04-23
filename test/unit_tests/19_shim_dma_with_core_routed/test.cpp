@@ -31,6 +31,7 @@ int main(int argc, char *argv[]) {
 
   aie_libxaie_ctx_t *_xaie = mlir_aie_init_libxaie();
   mlir_aie_init_device(_xaie);
+  mlir_aie_clear_all_configs(_xaie);
 
   /*
   XAieDma_Shim ShimDMAInst_7_0;
@@ -43,9 +44,6 @@ int main(int argc, char *argv[]) {
   XAieDma_TileBdClearAll(&TileDmaInst_7_3);
   XAieDma_TileChResetAll(&TileDmaInst_7_3);
   */
-
-  mlir_aie_clear_shim_config(_xaie, 7, 0);
-  mlir_aie_clear_config(_xaie, 7, 3);
 
   mlir_aie_configure_cores(_xaie);
   mlir_aie_configure_switchboxes(_xaie);

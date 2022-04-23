@@ -564,6 +564,10 @@ void mlir_aie_clear_locks(aie_libxaie_ctx_t *ctx, int col, int row) {
     locks_offset = 0x014F00;
   u32 locks = 0;
   XAie_Read32(&(ctx->DevInst), tileAddr + locks_offset, &locks);
+  // skip if all locks are already free
+  if (locks == 0)
+    return;
+
   printf("Clearing all locks of Tile(%d, %d) ... Current lock status: %x\n",
     col, row, locks);
   int count = 0;

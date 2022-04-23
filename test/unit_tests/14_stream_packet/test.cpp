@@ -32,11 +32,7 @@ main(int argc, char *argv[])
 
   aie_libxaie_ctx_t *_xaie = mlir_aie_init_libxaie();
   mlir_aie_init_device(_xaie);
-
-  mlir_aie_clear_config(_xaie, 7, 3);
-  mlir_aie_clear_config(_xaie, 7, 2);
-  mlir_aie_clear_config(_xaie, 7, 1);
-  mlir_aie_clear_config(_xaie, 6, 2);
+  mlir_aie_clear_all_configs(_xaie);
 
   // Run auto generated config functions
 
