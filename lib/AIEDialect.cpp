@@ -440,15 +440,15 @@ xilinx::AIE::TileOp xilinx::AIE::BufferOp::getTileOp() {
 }
 
 // DMALaunchOp
-static LogicalResult verify(xilinx::AIE::DMALaunchOp op) {
+LogicalResult xilinx::AIE::DMALaunchOp::verify() {
   // DMA channels should not point to the same BD (a BD cannot be shared)
   // unless it is a terminating block (contains AIE.end)
-  for (size_t i = 0; i < op.getDMAChannels().size(); i++) {
-    for (size_t j = i + 1; j < op.getDMAChannels().size(); j++) {
-      if (op.getDMAChannels()[i] != op.getDMAChannels()[j])
+  for (size_t i = 0; i < getDMAChannels().size(); i++) {
+    for (size_t j = i + 1; j < getDMAChannels().size(); j++) {
+      if (getDMAChannels()[i] != getDMAChannels()[j])
         continue;
-      if (!op.getDMAChannels()[i]->getOps<xilinx::AIE::DMABDOp>().empty())
-        op.emitOpError() << "Block Descriptor should be exclusive to one DMA channel!\n";
+      if (!getDMAChannels()[i]->getOps<xilinx::AIE::DMABDOp>().empty())
+        emitOpError() << "Block Descriptor should be exclusive to one DMA channel!\n";
     }
   }
 
@@ -480,10 +480,10 @@ LogicalResult xilinx::AIE::MemOp::verify() {
     }
   }
 
-  for (auto &block : op.body()) {
+  for (auto &block : body()) {
     if (!block.getOps<xilinx::AIE::DMABDOp>().empty()) {
       if (!block.getOps<xilinx::AIE::EndOp>().empty())
-        op.emitOpError() << "BD Block should not contain AIE EndOp\n";
+        emitOpError() << "BD Block should not contain AIE EndOp\n";
     }
   }
 

@@ -934,7 +934,7 @@ def AIE_DMAStartOp: AIE_Op<"dmaStart", [ParentOneOf<["MemOp", "func::FuncOp", "S
   ];
 }
 
-def AIE_DMALaunchOp: AIE_Op<"dmaLaunch", [ParentOneOf<["MemOp", "FuncOp", "ShimDMAOp"]>, Terminator]> {
+def AIE_DMALaunchOp: AIE_Op<"dmaLaunch", [ParentOneOf<["MemOp", "func::FuncOp", "ShimDMAOp"]>, Terminator]> {
 
   let summary = "An op to launch DMA channels";
   let description = [{
@@ -979,7 +979,7 @@ def AIE_DMALaunchOp: AIE_Op<"dmaLaunch", [ParentOneOf<["MemOp", "FuncOp", "ShimD
   let assemblyFormat = [{
     `(` $s2mm0_bd `,` $s2mm1_bd `,` $mm2s0_bd `,` $mm2s1_bd `)` attr-dict
   }];
-  let verifier = [{ return ::verify(*this); }];
+  let hasVerifier = 1;
   let extraClassDeclaration = [{
     SmallVector<Block *> getDMAChannels() {
       SmallVector<Block *, 4> dmaChannels;
