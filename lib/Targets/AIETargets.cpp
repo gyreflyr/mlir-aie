@@ -317,7 +317,15 @@ SECTIONS
               doBuffer(tile, 0x00030000);
             if (auto tile = getMemEast(srcCoord))
               doBuffer(tile, 0x00038000);
-            output << "_stack    DM_stack 0x20000  0x400 //stack for core\n";
+            if (tile.rowIndex() == 1) {
+              // South Mem is not available for row-1 Tile
+              output << "_reserved DMb 0x20000 0x8000\n";
+              // Use North Mem to allocate stack space
+              output << "_stack    DM_stack 0x30000  0x400 //stack for core\n";
+            } else {
+              // Otherwise use South Mem by default
+              output << "_stack    DM_stack 0x20000  0x400 //stack for core\n";
+            }
             output << "_reserved DMb 0x40000 0xc0000 // And everything else "
                       "the core can't see\n";
             if (auto coreOp = tile.getCoreOp()) {
