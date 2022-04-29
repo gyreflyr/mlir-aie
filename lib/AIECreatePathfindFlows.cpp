@@ -30,6 +30,10 @@ static llvm::cl::opt<bool>
     debugRoute("debug-pathfinder",
                llvm::cl::desc("Enable Debugging of Pathfinder routing process"),
                llvm::cl::init(false));
+static llvm::cl::opt<bool>
+    noWires("no-wires",
+            llvm::cl::desc("Enable Debugging of Pathfinder routing process"),
+            llvm::cl::init(false));
 
 #define BOOST_NO_EXCEPTIONS
 #include <boost/throw_exception.hpp>
@@ -453,74 +457,65 @@ struct AIEPathfinderPass
     DynamicTileAnalysis analyzer(m);
     OpBuilder builder = OpBuilder::atBlockEnd(m.getBody());
 
-    // Populate tiles and switchboxes.
-    for (int col = 0; col <= analyzer.getMaxCol(); col++) {
-      for (int row = 0; row <= analyzer.getMaxRow(); row++) {
-        analyzer.getTile(builder, col, row);
+    if (!noWires) {
+      for (int col = 0; col <= analyzer.getMaxCol(); col++) {
+        analyzer.getPLIO(builder, col);
       }
-    }
-    for (int col = 0; col <= analyzer.getMaxCol(); col++) {
-      for (int row = 0; row <= analyzer.getMaxRow(); row++) {
-        analyzer.getSwitchbox(builder, col, row);
-      }
-    }
-    for (int col = 0; col <= analyzer.getMaxCol(); col++) {
-      analyzer.getPLIO(builder, col);
-    }
 
-    // Populate wires between switchboxes and tiles.
-    for (int col = 0; col <= analyzer.getMaxCol(); col++) {
-      for (int row = 0; row <= analyzer.getMaxRow(); row++) {
-        auto tile = analyzer.getTile(builder, col, row);
-        auto sw = analyzer.getSwitchbox(builder, col, row);
-        if (col > 0) {
-          // connections east-west between stream switches
-          auto westsw = analyzer.getSwitchbox(builder, col - 1, row);
-          builder.create<WireOp>(builder.getUnknownLoc(), westsw,
-                                 WireBundle::East, sw, WireBundle::West);
-        }
-        if (row > 0) {
-          // connections between abstract 'core' of tile
-          builder.create<WireOp>(builder.getUnknownLoc(), tile,
-                                 WireBundle::Core, sw, WireBundle::Core);
-          // connections between abstract 'dma' of tile
-          builder.create<WireOp>(builder.getUnknownLoc(), tile, WireBundle::DMA,
-                                 sw, WireBundle::DMA);
-          // connections north-south inside array ( including connection to shim
-          // row)
-          auto southsw = analyzer.getSwitchbox(builder, col, row - 1);
-          builder.create<WireOp>(builder.getUnknownLoc(), southsw,
-                                 WireBundle::North, sw, WireBundle::South);
-        } else if (row == 0) {
-          if (tile.isShimNOCTile()) {
-            auto shimsw = analyzer.getShimMux(builder, col);
-            builder.create<WireOp>(
-                builder.getUnknownLoc(), shimsw,
-                WireBundle::North, // Changed to connect into the north
-                sw, WireBundle::South);
-            // PLIO is attached to shim mux
-            auto plio = analyzer.getPLIO(builder, col);
-            builder.create<WireOp>(builder.getUnknownLoc(), plio,
-                                   WireBundle::North, shimsw,
-                                   WireBundle::South);
-
-            // abstract 'DMA' connection on tile is attached to shim mux ( in
-            // row 0 )
+      // Populate wires between switchboxes and tiles.
+      for (int col = 0; col <= analyzer.getMaxCol(); col++) {
+        for (int row = 0; row <= analyzer.getMaxRow(); row++) {
+          auto tile = analyzer.getTile(builder, col, row);
+          auto sw = analyzer.getSwitchbox(builder, col, row);
+          if (col > 0) {
+            // connections east-west between stream switches
+            auto westsw = analyzer.getSwitchbox(builder, col - 1, row);
+            builder.create<WireOp>(builder.getUnknownLoc(), westsw,
+                                   WireBundle::East, sw, WireBundle::West);
+          }
+          if (row > 0) {
+            // connections between abstract 'core' of tile
             builder.create<WireOp>(builder.getUnknownLoc(), tile,
-                                   WireBundle::DMA, shimsw, WireBundle::DMA);
-          } else if (tile.isShimPLTile()) {
-            // PLIO is attached directly to switch
-            auto plio = analyzer.getPLIO(builder, col);
-            builder.create<WireOp>(builder.getUnknownLoc(), plio,
+                                   WireBundle::Core, sw, WireBundle::Core);
+            // connections between abstract 'dma' of tile
+            builder.create<WireOp>(builder.getUnknownLoc(), tile, WireBundle::DMA,
+                                   sw, WireBundle::DMA);
+            // connections north-south inside array ( including connection to shim
+            // row)
+            auto southsw = analyzer.getSwitchbox(builder, col, row - 1);
+            builder.create<WireOp>(builder.getUnknownLoc(), southsw,
                                    WireBundle::North, sw, WireBundle::South);
+          } else if (row == 0) {
+            if (tile.isShimNOCTile()) {
+              auto shimsw = analyzer.getShimMux(builder, col);
+              builder.create<WireOp>(
+                  builder.getUnknownLoc(), shimsw,
+                  WireBundle::North, // Changed to connect into the north
+                  sw, WireBundle::South);
+              // PLIO is attached to shim mux
+              auto plio = analyzer.getPLIO(builder, col);
+              builder.create<WireOp>(builder.getUnknownLoc(), plio,
+                                     WireBundle::North, shimsw,
+                                     WireBundle::South);
+
+              // abstract 'DMA' connection on tile is attached to shim mux ( in
+              // row 0 )
+              builder.create<WireOp>(builder.getUnknownLoc(), tile,
+                                     WireBundle::DMA, shimsw, WireBundle::DMA);
+            } else if (tile.isShimPLTile()) {
+              // PLIO is attached directly to switch
+              auto plio = analyzer.getPLIO(builder, col);
+              builder.create<WireOp>(builder.getUnknownLoc(), plio,
+                                     WireBundle::North, sw, WireBundle::South);
+            }
           }
         }
       }
     }
-
     // Apply rewrite rule to switchboxes to add assignments to every 'connect'
     // operation inside
     ConversionTarget target(getContext());
+    target.addLegalOp<TileOp>();
     target.addLegalOp<ConnectOp>();
     target.addLegalOp<SwitchboxOp>();
     target.addLegalOp<ShimMuxOp>();
